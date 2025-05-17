@@ -28,6 +28,7 @@ git clone https://github.com/kwspringkle/IT4082_Nhom15.git
 ```
 ### 2. Cấu trúc dự án sau khi clone
 Sau khi clone xong, trong thư mục dự án sẽ có 2 thư mục chính:
-
+<pre lang="markdown">
 - bluemoon.frontend — chứa mã nguồn giao diện người dùng (React + Vite)
 - backend — chứa mã nguồn server (Express.js)
+</pre>
