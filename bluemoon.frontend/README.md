@@ -1,12 +1,30 @@
-# React + Vite
+# Dự án Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Đây là dự án frontend được xây dựng bằng React và Vite.
 
-Currently, two official plugins are available:
+## Các công nghệ chính
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+* **React:** Một thư viện JavaScript để xây dựng giao diện người dùng.
+* **Vite:** Một công cụ xây dựng thế hệ mới, cung cấp trải nghiệm phát triển cực nhanh.
 
-## Expanding the ESLint configuration
+## Cài đặt
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Để chạy dự án này trên máy cục bộ của bạn, hãy làm theo các bước sau:
+
+1.  **Sao chép kho lưu trữ:**
+    ```bash
+    cd bluemoon.frontend
+    ```
+
+2.  **Cài đặt các dependencies:**
+    ```bash
+    npm install
+    ```
+
+## Chạy ứng dụng
+
+Để khởi động máy chủ phát triển, hãy chạy lệnh sau:
+
+```bash
+npm run dev
+```
