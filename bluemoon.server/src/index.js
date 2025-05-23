@@ -4,6 +4,7 @@ import authRouter from './route/auth.routes.js';
 import householdRouter from './route/household.routes.js';
 import citizenRouter from './route/citizen.routes.js';
 import searchRouter from './route/search.routes.js';
+import historyRouter from './route/history.routes.js';
 
 
 dotenv.config(); // load biến môi trường từ .env
@@ -18,6 +19,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/households', householdRouter);
 app.use('/api/citizens', citizenRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/citizens', historyRouter);
 
 
 
