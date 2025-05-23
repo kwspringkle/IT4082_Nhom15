@@ -1,33 +1,52 @@
+import { citizens } from '../seed/fakeCitizens.js';
+import { households } from '../seed/fakeHouseholds.js';
+
 // Hàm tìm kiếm hộ khẩu theo tiêu chí
 export const searchHouseholds = async (req, res) => {
   try {
     const {
-      apartmentNumber,  // Số căn hộ
-      ownerName,       // Tên chủ hộ
-      registrationDate // Ngày đăng ký
+      apartment,
+      floor,
+      head,
+      phone,
+      members
     } = req.query;
 
-    // Xây dựng điều kiện tìm kiếm
-    let searchConditions = {};
-    
-    if (apartmentNumber) {
-      searchConditions.apartmentNumber = { $regex: apartmentNumber, $options: 'i' };
-    }
-    
-    if (ownerName) {
-      searchConditions['owner.name'] = { $regex: ownerName, $options: 'i' };
-    }
-    
-    if (registrationDate) {
-      searchConditions.registrationDate = registrationDate;
+    let results = [...households];
+
+    if (apartment) {
+      results = results.filter(h => 
+        h.apartment.toLowerCase().includes(apartment.toLowerCase())
+      );
     }
 
-    // Thực hiện tìm kiếm trong database
-    const households = await Household.find(searchConditions);
+    if (floor) {
+      results = results.filter(h => 
+        h.floor === parseInt(floor)
+      );
+    }
+
+    if (head) {
+      results = results.filter(h => 
+        h.head.toLowerCase().includes(head.toLowerCase())
+      );
+    }
+
+    if (phone) {
+      results = results.filter(h => 
+        h.phone.includes(phone)
+      );
+    }
+
+    if (members) {
+      results = results.filter(h => 
+        h.members === parseInt(members)
+      );
+    }
 
     res.status(200).json({
       success: true,
-      data: households,
+      data: results,
       message: 'Tìm kiếm hộ khẩu thành công'
     });
 
@@ -44,42 +63,62 @@ export const searchHouseholds = async (req, res) => {
 export const searchCitizens = async (req, res) => {
   try {
     const {
-      name,           // Họ tên
-      citizenId,      // CCCD/CMT
-      gender,         // Giới tính
-      apartment,      // Số căn hộ
-      dob            // Ngày sinh
+      name,
+      citizenId,
+      gender,
+      apartment,
+      dob,
+      relation,
+      householdId
     } = req.query;
 
-    // Xây dựng điều kiện tìm kiếm
-    let searchConditions = {};
-    
+    let results = [...citizens];
+
     if (name) {
-      searchConditions.name = { $regex: name, $options: 'i' };
-    }
-    
-    if (citizenId) {
-      searchConditions.citizenId = { $regex: citizenId, $options: 'i' };
-    }
-    
-    if (gender) {
-      searchConditions.gender = gender;
-    }
-    
-    if (apartment) {
-      searchConditions.apartment = apartment;
-    }
-    
-    if (dob) {
-      searchConditions.dob = dob;
+      results = results.filter(c => 
+        c.name.toLowerCase().includes(name.toLowerCase())
+      );
     }
 
-    // Thực hiện tìm kiếm trong database
-    const citizens = await Citizen.find(searchConditions);
+    if (citizenId) {
+      results = results.filter(c => 
+        c.citizenId.includes(citizenId)
+      );
+    }
+
+    if (gender) {
+      results = results.filter(c => 
+        c.gender.toLowerCase() === gender.toLowerCase()
+      );
+    }
+
+    if (apartment) {
+      results = results.filter(c => 
+        c.apartment === apartment
+      );
+    }
+
+    if (dob) {
+      results = results.filter(c => 
+        c.dob === dob
+      );
+    }
+
+    if (relation) {
+      results = results.filter(c =>
+        c.relation.toLowerCase().includes(relation.toLowerCase())
+      );
+    }
+
+    if (householdId) {
+      results = results.filter(c =>
+        c.householdId === parseInt(householdId)
+      );
+    }
 
     res.status(200).json({
       success: true,
-      data: citizens,
+      data: results,
       message: 'Tìm kiếm nhân khẩu thành công'
     });
 
