@@ -37,6 +37,13 @@ export const searchHouseholds = async (req, res) => {
         h.members === parseInt(members)
       );
     }
+    // Nếu không có kết quả nào, trả về thông báo
+    if (results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy hộ khẩu nào'
+      });
+    }
 
     // Thêm thông tin chi tiết về các thành viên trong hộ
     const detailedResults = results.map(household => {
@@ -111,14 +118,20 @@ export const searchCitizens = async (req, res) => {
       );
     }
 
-    // Thêm thông tin chi tiết về hộ khẩu
+ 
     const detailedResults = results.map(citizen => {
       const household = households.find(h => h.id === citizen.householdId);
       return {
         ...citizen,
-        householdDetails: household
       };
     });
+    // Nếu không có kết quả nào, trả về thông báo
+    if (detailedResults.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy nhân khẩu nào'
+      });
+    }
 
     res.status(200).json({
       success: true,
