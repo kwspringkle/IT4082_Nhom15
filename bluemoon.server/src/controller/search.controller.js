@@ -4,13 +4,7 @@ import { households } from '../seed/fakeHouseholds.js';
 // Hàm tìm kiếm hộ khẩu theo tiêu chí
 export const searchHouseholds = async (req, res) => {
   try {
-    const {
-      apartment,
-      floor,
-      head,
-      phone,
-      members
-    } = req.query;
+    const { apartment, floor, head, phone, members } = req.query;
 
     let results = [...households];
 
@@ -44,9 +38,18 @@ export const searchHouseholds = async (req, res) => {
       );
     }
 
+    // Thêm thông tin chi tiết về các thành viên trong hộ
+    const detailedResults = results.map(household => {
+      const householdMembers = citizens.filter(c => c.householdId === household.id);
+      return {
+        ...household,
+        memberDetails: householdMembers
+      };
+    });
+
     res.status(200).json({
       success: true,
-      data: results,
+      data: detailedResults,
       message: 'Tìm kiếm hộ khẩu thành công'
     });
 
@@ -62,15 +65,7 @@ export const searchHouseholds = async (req, res) => {
 // Hàm tìm kiếm nhân khẩu theo tiêu chí
 export const searchCitizens = async (req, res) => {
   try {
-    const {
-      name,
-      citizenId,
-      gender,
-      apartment,
-      dob,
-      relation,
-      householdId
-    } = req.query;
+    const { name, citizenId, gender, apartment, dob, relation, householdId } = req.query;
 
     let results = [...citizens];
 
@@ -116,9 +111,18 @@ export const searchCitizens = async (req, res) => {
       );
     }
 
+    // Thêm thông tin chi tiết về hộ khẩu
+    const detailedResults = results.map(citizen => {
+      const household = households.find(h => h.id === citizen.householdId);
+      return {
+        ...citizen,
+        householdDetails: household
+      };
+    });
+
     res.status(200).json({
       success: true,
-      data: results,
+      data: detailedResults,
       message: 'Tìm kiếm nhân khẩu thành công'
     });
 
