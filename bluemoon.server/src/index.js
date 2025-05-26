@@ -6,6 +6,7 @@ import citizenRouter from './route/citizen.routes.js';
 import searchRouter from './route/search.routes.js';
 import historyRouter from './route/history.routes.js';
 import feeRouter from './route/fee.routes.js';
+import paymentRouter from './route/payment.routes.js';
 
 
 dotenv.config(); // load biến môi trường từ .env
@@ -22,6 +23,7 @@ app.use('/api/citizens', citizenRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/citizens', historyRouter);
 app.use('/api/fees', feeRouter);
+app.use('/api/payments', paymentRouter);
 
 
 
