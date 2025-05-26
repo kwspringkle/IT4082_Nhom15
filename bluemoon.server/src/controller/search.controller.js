@@ -1,5 +1,6 @@
 import { citizens } from '../seed/fakeCitizens.js';
 import { households } from '../seed/fakeHouseholds.js';
+import { fees } from '../seed/fakeFees.js';
 
 // Hàm tìm kiếm hộ khẩu theo tiêu chí
 export const searchHouseholds = async (req, res) => {
@@ -143,6 +144,77 @@ export const searchCitizens = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Lỗi khi tìm kiếm nhân khẩu',
+      error: error.message
+    });
+  }
+};
+
+// Tìm kiếm khoản thu theo tiêu chí
+export const searchFees = async (req, res) => {
+  try {
+    const { name, type, status, minAmount, maxAmount, mandatory } = req.query;
+
+    let results = [...fees];
+
+    // Tìm theo tên
+    if (name) {
+      results = results.filter(fee => 
+        fee.name.toLowerCase().includes(name.toLowerCase())
+      );
+    }
+
+    // Tìm theo loại (MONTHLY/YEARLY)
+    if (type) {
+      results = results.filter(fee => 
+        fee.type.toLowerCase() === type.toLowerCase()
+      );
+    }
+
+    // Tìm theo trạng thái
+    if (status) {
+      results = results.filter(fee => 
+        fee.status.toLowerCase() === status.toLowerCase()
+      );
+    }
+
+    // Tìm theo khoảng tiền
+    if (minAmount) {
+      results = results.filter(fee => 
+        fee.amount >= parseInt(minAmount)
+      );
+    }
+
+    if (maxAmount) {
+      results = results.filter(fee => 
+        fee.amount <= parseInt(maxAmount)
+      );
+    }
+
+    // Tìm theo tính bắt buộc
+    if (mandatory !== undefined) {
+      const isMandatory = mandatory === 'true';
+      results = results.filter(fee => 
+        fee.mandatory === isMandatory
+      );
+    }
+
+    if (results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy khoản thu nào phù hợp với tiêu chí tìm kiếm'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: results,
+      message: 'Tìm kiếm khoản thu thành công'
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi tìm kiếm khoản thu',
       error: error.message
     });
   }
