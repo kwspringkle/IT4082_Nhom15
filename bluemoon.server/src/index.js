@@ -1,5 +1,5 @@
 import express from 'express';
-import dotenv from 'dotenv';
+import dotenv, { config } from 'dotenv';
 import authRouter from './route/auth.routes.js';
 import householdRouter from './route/household.routes.js';
 import citizenRouter from './route/citizen.routes.js';
@@ -7,6 +7,7 @@ import searchRouter from './route/search.routes.js';
 import historyRouter from './route/history.routes.js';
 import feeRouter from './route/fee.routes.js';
 import accountRouter from './route/account.routes.js';
+import { connectDB } from './config/db.js';
 
 
 dotenv.config(); // load biến môi trường từ .env
@@ -15,6 +16,9 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
+
+connectDB();
+
 
 // Mount router đúng cách với app.use
 app.use('/api/auth', authRouter);

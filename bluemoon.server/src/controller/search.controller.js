@@ -1,58 +1,39 @@
-import { citizens } from '../seed/fakeCitizens.js';
-import { households } from '../seed/fakeHouseholds.js';
+import Household from '../model/Household.js';
+import Citizen from '../model/Citizen.js';
 
-// Hàm tìm kiếm hộ khẩu theo tiêu chí
+// Tìm kiếm hộ khẩu theo tiêu chí
 export const searchHouseholds = async (req, res) => {
   try {
     const { apartment, floor, head, phone, members } = req.query;
 
-    let results = [...households];
+    const filter = {};
 
-    if (apartment) {
-      results = results.filter(h => 
-        h.apartment.toLowerCase().includes(apartment.toLowerCase())
-      );
-    }
+    if (apartment) filter.apartment = { $regex: apartment, $options: 'i' };
+    if (floor) filter.floor = parseInt(floor);
+    if (head) filter.head = { $regex: head, $options: 'i' };
+    if (phone) filter.phone = { $regex: phone };
+    if (members) filter.members = parseInt(members);
 
-    if (floor) {
-      results = results.filter(h => 
-        h.floor === parseInt(floor)
-      );
-    }
+    // Tìm hộ khẩu theo filter
+    const households = await Household.find(filter);
 
-    if (head) {
-      results = results.filter(h => 
-        h.head.toLowerCase().includes(head.toLowerCase())
-      );
-    }
-
-    if (phone) {
-      results = results.filter(h => 
-        h.phone.includes(phone)
-      );
-    }
-
-    if (members) {
-      results = results.filter(h => 
-        h.members === parseInt(members)
-      );
-    }
-    // Nếu không có kết quả nào, trả về thông báo
-    if (results.length === 0) {
+    if (households.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy hộ khẩu nào'
       });
     }
 
-    // Thêm thông tin chi tiết về các thành viên trong hộ
-    const detailedResults = results.map(household => {
-      const householdMembers = citizens.filter(c => c.householdId === household.id);
-      return {
-        ...household,
-        memberDetails: householdMembers
-      };
-    });
+    // Tìm thành viên trong từng hộ khẩu
+    const detailedResults = await Promise.all(
+      households.map(async (household) => {
+        const memberDetails = await Citizen.find({ householdId: household._id });
+        return {
+          ...household.toObject(),
+          memberDetails
+        };
+      })
+    );
 
     res.status(200).json({
       success: true,
@@ -69,64 +50,25 @@ export const searchHouseholds = async (req, res) => {
   }
 };
 
-// Hàm tìm kiếm nhân khẩu theo tiêu chí
+// Tìm kiếm nhân khẩu theo tiêu chí
 export const searchCitizens = async (req, res) => {
   try {
     const { name, citizenId, gender, apartment, dob, relation, householdId } = req.query;
 
-    let results = [...citizens];
+    const filter = {};
 
-    if (name) {
-      results = results.filter(c => 
-        c.name.toLowerCase().includes(name.toLowerCase())
-      );
-    }
+    if (name) filter.name = { $regex: name, $options: 'i' };
+    if (citizenId) filter.citizenId = { $regex: citizenId };
+    if (gender) filter.gender = gender.toLowerCase();
+    if (apartment) filter.apartment = apartment;
+    if (dob) filter.dob = dob;
+    if (relation) filter.relation = { $regex: relation, $options: 'i' };
+    if (householdId) filter.householdId = householdId;
 
-    if (citizenId) {
-      results = results.filter(c => 
-        c.citizenId.includes(citizenId)
-      );
-    }
+    // Tìm nhân khẩu theo filter
+    const citizens = await Citizen.find(filter);
 
-    if (gender) {
-      results = results.filter(c => 
-        c.gender.toLowerCase() === gender.toLowerCase()
-      );
-    }
-
-    if (apartment) {
-      results = results.filter(c => 
-        c.apartment === apartment
-      );
-    }
-
-    if (dob) {
-      results = results.filter(c => 
-        c.dob === dob
-      );
-    }
-
-    if (relation) {
-      results = results.filter(c =>
-        c.relation.toLowerCase().includes(relation.toLowerCase())
-      );
-    }
-
-    if (householdId) {
-      results = results.filter(c =>
-        c.householdId === parseInt(householdId)
-      );
-    }
-
- 
-    const detailedResults = results.map(citizen => {
-      const household = households.find(h => h.id === citizen.householdId);
-      return {
-        ...citizen,
-      };
-    });
-    // Nếu không có kết quả nào, trả về thông báo
-    if (detailedResults.length === 0) {
+    if (citizens.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy nhân khẩu nào'
@@ -135,10 +77,9 @@ export const searchCitizens = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: detailedResults,
+      data: citizens,
       message: 'Tìm kiếm nhân khẩu thành công'
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,

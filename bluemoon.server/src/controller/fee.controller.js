@@ -1,44 +1,28 @@
-import { fees, saveFees } from '../seed/fakeFees.js';
+import Fee from '../model/Fee.js';
 
-// Lấy danh sách tất cả các khoản thu
+// Lấy danh sách tất cả các khoản thu, hỗ trợ filter type và status
 export const getAllFees = async (req, res) => {
   try {
     const { type, status } = req.query;
-    
-    let results = [...fees];
 
-    // Lọc theo loại khoản thu (MONTHLY/YEARLY)
-    if (type) {
-      results = results.filter(fee => 
-        fee.type.toLowerCase() === type.toLowerCase()
-      );
-    }
+    const filter = {};
+    if (type) filter.type = type.toUpperCase();
+    if (status) filter.status = status.toUpperCase();
 
-    // Lọc theo trạng thái
-    if (status) {
-      results = results.filter(fee => 
-        fee.status.toLowerCase() === status.toLowerCase()
-      );
-    }
+    const fees = await Fee.find(filter).select('name'); // _id sẽ tự động trả về
 
-    // Nếu không có kết quả
-    if (results.length === 0) {
+    if (fees.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy khoản thu nào'
       });
-    }    // Chỉ trả về id và tên của khoản thu
-    const simplifiedResults = results.map(fee => ({
-      id: fee.id,
-      name: fee.name
-    }));
+    }
 
     res.status(200).json({
       success: true,
-      data: simplifiedResults,
+      data: fees,
       message: 'Lấy danh sách khoản thu thành công'
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -48,25 +32,21 @@ export const getAllFees = async (req, res) => {
   }
 };
 
-// Lấy chi tiết một khoản thu
+// Lấy chi tiết một khoản thu theo ID
 export const getFeeById = async (req, res) => {
   try {
-    const feeId = parseInt(req.params.id);
-    const fee = fees.find(f => f.id === feeId);
-
+    const fee = await Fee.findById(req.params.id);
     if (!fee) {
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy khoản thu'
       });
     }
-
     res.status(200).json({
       success: true,
       data: fee,
       message: 'Lấy chi tiết khoản thu thành công'
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -81,7 +61,6 @@ export const createFee = async (req, res) => {
   try {
     const { name, amount, type, description, mandatory } = req.body;
 
-    // Validate required fields
     if (!name || !amount || !type) {
       return res.status(400).json({
         success: false,
@@ -89,7 +68,6 @@ export const createFee = async (req, res) => {
       });
     }
 
-    // Validate type
     if (!['MONTHLY', 'YEARLY'].includes(type.toUpperCase())) {
       return res.status(400).json({
         success: false,
@@ -97,31 +75,23 @@ export const createFee = async (req, res) => {
       });
     }
 
-    // Create new fee with current timestamp
-    const newFee = {
-      id: fees.length + 1,
+    const fee = new Fee({
       name,
       amount,
       type: type.toUpperCase(),
       description: description || '',
       mandatory: mandatory || false,
       status: 'ACTIVE',
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0]
-    };
+      // createdAt, updatedAt sẽ tự động thêm
+    });
 
-    // Add to fees array
-    fees.push(newFee);
-    // Save to file
-    await saveFees(fees);
-    // Return response
+    const savedFee = await fee.save();
 
     res.status(201).json({
       success: true,
-      data: newFee,
+      data: savedFee,
       message: 'Tạo khoản thu mới thành công'
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -134,19 +104,8 @@ export const createFee = async (req, res) => {
 // Cập nhật khoản thu
 export const updateFee = async (req, res) => {
   try {
-    const feeId = parseInt(req.params.id);
     const { name, amount, type, description, mandatory, status } = req.body;
 
-    // Tìm khoản thu cần cập nhật
-    const feeIndex = fees.findIndex(f => f.id === feeId);
-    if (feeIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy khoản thu'
-      });
-    }
-
-    // Validate type nếu có cập nhật
     if (type && !['MONTHLY', 'YEARLY'].includes(type.toUpperCase())) {
       return res.status(400).json({
         success: false,
@@ -154,30 +113,29 @@ export const updateFee = async (req, res) => {
       });
     }
 
-    // Cập nhật thông tin
-    const updatedFee = {
-      ...fees[feeIndex],
-      name: name || fees[feeIndex].name,
-      amount: amount || fees[feeIndex].amount,
-      type: type ? type.toUpperCase() : fees[feeIndex].type,
-      description: description || fees[feeIndex].description,
-      mandatory: mandatory !== undefined ? mandatory : fees[feeIndex].mandatory,
-      status: status || fees[feeIndex].status,
-      updatedAt: new Date().toISOString().split('T')[0]
-    };
+    const updatedData = {};
 
-    // Cập nhật vào mảng
-    fees[feeIndex] = updatedFee;
-    
-    // Lưu thay đổi
-    await saveFees(fees);
+    if (name !== undefined) updatedData.name = name;
+    if (amount !== undefined) updatedData.amount = amount;
+    if (type !== undefined) updatedData.type = type.toUpperCase();
+    if (description !== undefined) updatedData.description = description;
+    if (mandatory !== undefined) updatedData.mandatory = mandatory;
+    if (status !== undefined) updatedData.status = status;
+
+    const updatedFee = await Fee.findByIdAndUpdate(req.params.id, updatedData, { new: true });
+
+    if (!updatedFee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy khoản thu'
+      });
+    }
 
     res.status(200).json({
       success: true,
       data: updatedFee,
       message: 'Cập nhật khoản thu thành công'
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -190,36 +148,28 @@ export const updateFee = async (req, res) => {
 // Xóa khoản thu
 export const deleteFee = async (req, res) => {
   try {
-    const feeId = parseInt(req.params.id);
+    const fee = await Fee.findById(req.params.id);
 
-    // Tìm khoản thu cần xóa
-    const feeIndex = fees.findIndex(f => f.id === feeId);
-    if (feeIndex === -1) {
+    if (!fee) {
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy khoản thu'
       });
     }
 
-    // Kiểm tra xem có đang được sử dụng không
-    if (fees[feeIndex].status === 'ACTIVE') {
+    if (fee.status === 'ACTIVE') {
       return res.status(400).json({
         success: false,
         message: 'Không thể xóa khoản thu đang hoạt động'
       });
     }
 
-    // Xóa khỏi mảng
-    fees.splice(feeIndex, 1);
-    
-    // Lưu thay đổi
-    await saveFees(fees);
+    await Fee.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,
       message: 'Xóa khoản thu thành công'
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,

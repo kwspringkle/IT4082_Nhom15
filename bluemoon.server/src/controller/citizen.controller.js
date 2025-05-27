@@ -1,57 +1,80 @@
-import { citizens } from '../seed/fakeCitizens.js';
+import Citizen from '../model/Citizen.js';
 
 // Lấy danh sách nhân khẩu
-export const getAllCitizens = (req, res) => {
-  res.json(citizens);
+export const getAllCitizens = async (req, res) => {
+  try {
+    const citizens = await Citizen.find().populate('householdId');
+    res.json(citizens);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi máy chủ' });
+  }
 };
 
-// Lấy chi tiết nhân khẩu theo id
-export const getCitizenById = (req, res) => {
-  const id = parseInt(req.params.id);
-  const citizen = citizens.find(c => c.id === id);
-  if (!citizen) {
-    return res.status(404).json({ message: 'Không tìm thấy nhân khẩu' });
+// Lấy chi tiết nhân khẩu theo ID
+export const getCitizenById = async (req, res) => {
+  try {
+    const citizen = await Citizen.findById(req.params.id).populate('householdId');
+    if (!citizen) {
+      return res.status(404).json({ message: 'Không tìm thấy nhân khẩu' });
+    }
+    res.json(citizen);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi máy chủ' });
   }
-  res.json(citizen);
 };
 
 // Thêm mới nhân khẩu
-export const createCitizen = (req, res) => {
-  const { name, citizenId, gender, dob, apartment, relation } = req.body;
+export const createCitizen = async (req, res) => {
+  try {
+    const { name, citizenId, gender, dob, apartment, relation, householdId } = req.body;
 
-  // Bạn có thể thêm kiểm tra hợp lệ dữ liệu ở đây
+    const newCitizen = new Citizen({
+      name,
+      citizenId,
+      gender,
+      dob,
+      apartment,
+      relation,
+      householdId
+    });
 
-  const newId = citizens.length ? citizens[citizens.length - 1].id + 1 : 1;
-  const newCitizen = { id: newId, name, citizenId, gender, dob, apartment, relation };
-  citizens.push(newCitizen);
-
-  res.status(201).json({ message: 'Thêm nhân khẩu thành công', data: newCitizen });
+    const savedCitizen = await newCitizen.save();
+    res.status(201).json({ message: 'Thêm nhân khẩu thành công', data: savedCitizen });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi máy chủ' });
+  }
 };
 
 // Cập nhật nhân khẩu
-export const updateCitizen = (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = citizens.findIndex(c => c.id === id);
+export const updateCitizen = async (req, res) => {
+  try {
+    const { name, citizenId, gender, dob, apartment, relation, householdId } = req.body;
 
-  if (index === -1) {
-    return res.status(404).json({ message: 'Không tìm thấy nhân khẩu' });
+    const updatedCitizen = await Citizen.findByIdAndUpdate(
+      req.params.id,
+      { name, citizenId, gender, dob, apartment, relation, householdId },
+      { new: true }
+    );
+
+    if (!updatedCitizen) {
+      return res.status(404).json({ message: 'Không tìm thấy nhân khẩu' });
+    }
+
+    res.json({ message: 'Cập nhật nhân khẩu thành công', data: updatedCitizen });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi máy chủ' });
   }
-
-  const { name, citizenId, gender, dob, apartment, relation } = req.body;
-  citizens[index] = { id, name, citizenId, gender, dob, apartment, relation };
-
-  res.json({ message: 'Cập nhật nhân khẩu thành công', data: citizens[index] });
 };
 
 // Xóa nhân khẩu
-export const deleteCitizen = (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = citizens.findIndex(c => c.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({ message: 'Không tìm thấy nhân khẩu' });
+export const deleteCitizen = async (req, res) => {
+  try {
+    const deletedCitizen = await Citizen.findByIdAndDelete(req.params.id);
+    if (!deletedCitizen) {
+      return res.status(404).json({ message: 'Không tìm thấy nhân khẩu' });
+    }
+    res.json({ message: 'Xóa nhân khẩu thành công' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi máy chủ' });
   }
-
-  citizens.splice(index, 1);
-  res.json({ message: 'Xóa nhân khẩu thành công' });
 };

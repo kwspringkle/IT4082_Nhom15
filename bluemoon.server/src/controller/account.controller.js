@@ -1,59 +1,77 @@
-import { users } from '../seed/fakeUsers.js';
+import User from '../model/User.js';
 
-export const getAllAccounts = (req, res) => {
-  res.json(users);
+// GET /api/accounts
+export const getAllAccounts = async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi khi lấy danh sách tài khoản', error: err.message });
+  }
 };
 
-export const getAccountById = (req, res) => {
-  const id = parseInt(req.params.id);
-  const user = users.find(u => u.id === id);
-  if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
-  res.json(user);
+// GET /api/accounts/:id
+export const getAccountById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi khi tìm tài khoản', error: err.message });
+  }
 };
 
-export const createAccount = (req, res) => {
-  const newUser = {
-    ...req.body,
-    id: users.length ? Math.max(...users.map(u => u.id)) + 1 : 1,
-    createdAt: new Date().toISOString().split('T')[0]
-  };
-  users.push(newUser);
-  res.status(201).json(newUser);
+// POST /api/accounts
+export const createAccount = async (req, res) => {
+  try {
+    const newUser = new User(req.body);
+    await newUser.save();
+    res.status(201).json(newUser);
+  } catch (err) {
+    res.status(400).json({ message: 'Không thể tạo tài khoản', error: err.message });
+  }
 };
 
-export const updateAccount = (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = users.findIndex(u => u.id === id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
-  users[index] = { ...users[index], ...req.body };
-  res.json(users[index]);
+// PUT /api/accounts/:id
+export const updateAccount = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
+    res.json(user);
+  } catch (err) {
+    res.status(400).json({ message: 'Lỗi khi cập nhật tài khoản', error: err.message });
+  }
 };
 
-export const deleteAccount = (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = users.findIndex(u => u.id === id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
-  const deleted = users.splice(index, 1);
-  res.json({ message: 'Đã xóa tài khoản', account: deleted[0] });
+// DELETE /api/accounts/:id
+export const deleteAccount = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
+    res.json({ message: 'Đã xóa tài khoản', account: user });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi khi xóa tài khoản', error: err.message });
+  }
 };
-
 
 // PATCH /api/accounts/:id/lock
-export const lockAccount = (req, res) => {
-  const id = parseInt(req.params.id);
-  const user = users.find(u => u.id === id);
-  if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
-
-  user.status = 'Vô hiệu';
-  res.json({ message: 'Đã khóa tài khoản', user });
+export const lockAccount = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, { status: 'Vô hiệu' }, { new: true });
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
+    res.json({ message: 'Đã khóa tài khoản', user });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi khi khóa tài khoản', error: err.message });
+  }
 };
 
 // PATCH /api/accounts/:id/unlock
-export const unlockAccount = (req, res) => {
-  const id = parseInt(req.params.id);
-  const user = users.find(u => u.id === id);
-  if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
-
-  user.status = 'Hoạt động';
-  res.json({ message: 'Đã mở khóa tài khoản', user });
+export const unlockAccount = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, { status: 'Hoạt động' }, { new: true });
+    if (!user) return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
+    res.json({ message: 'Đã mở khóa tài khoản', user });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi khi mở khóa tài khoản', error: err.message });
+  }
 };
