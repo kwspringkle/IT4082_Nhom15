@@ -12,27 +12,48 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate authentication - in a real app this would call an API
-    setTimeout(() => {
-      if (username === "admin" && password === "admin") {
-        toast({
-          title: "Đăng nhập thành công",
-          description: "Chào mừng quay trở lại hệ thống quản lý BlueMoon",
-        });
-        navigate("/");
-      } else {
-        toast({
-          title: "Đăng nhập thất bại",
-          description: "Tên đăng nhập hoặc mật khẩu không chính xác",
-          variant: "destructive",
-        });
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Đăng nhập thất bại');
       }
+
+      // Lưu token (nếu backend trả về token)
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+
+      toast({
+        title: "Đăng nhập thành công",
+        description: "Chào mừng quay trở lại hệ thống quản lý BlueMoon",
+      });
+      navigate("/"); // Chuyển hướng đến trang chính
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Đăng nhập thất bại",
+        description: error.message || "Tên đăng nhập hoặc mật khẩu không chính xác",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (

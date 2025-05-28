@@ -15,9 +15,9 @@ const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       toast({
         title: "Lỗi xác nhận mật khẩu",
@@ -26,23 +26,48 @@ const RegisterPage = () => {
       });
       return;
     }
-    
+
     setIsLoading(true);
 
-    // Simulate registration - in a real app this would call an API
-    setTimeout(() => {
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password,
+          fullname: fullName,
+          phone: phoneNumber,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Đăng ký thất bại');
+      }
+
       toast({
         title: "Đăng ký thành công",
         description: "Tài khoản của bạn đã được tạo",
       });
       navigate("/login");
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast({
+        title: "Lỗi đăng ký",
+        description: error.message || "Không thể kết nối với server. Vui lòng kiểm tra lại.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
-      {/* Blue sidebar with info */}
       <div className="md:w-2/5 bg-gradient-to-br from-bluemoon-800 to-bluemoon-600 text-white p-8 md:p-12 flex flex-col">
         <div className="mb-8">
           <div className="flex items-center gap-3">
@@ -52,7 +77,6 @@ const RegisterPage = () => {
             <h1 className="text-2xl font-bold">BlueMoon</h1>
           </div>
         </div>
-
         <div className="flex-grow flex flex-col justify-center">
           <h2 className="text-3xl font-bold mb-6">Đăng ký tài khoản</h2>
           <p className="mb-4">
@@ -79,14 +103,11 @@ const RegisterPage = () => {
             </li>
           </ul>
         </div>
-
         <div className="mt-8 text-sm text-bluemoon-100">
           <p>© 2025 Chung cư BlueMoon</p>
           <p>Địa chỉ: Ngã tư Văn Phú</p>
         </div>
       </div>
-
-      {/* Register form */}
       <div className="md:w-3/5 flex items-center justify-center p-8">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
@@ -95,7 +116,6 @@ const RegisterPage = () => {
               Nhập thông tin để tạo tài khoản mới
             </p>
           </div>
-
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="fullName">Họ và tên</Label>
@@ -108,7 +128,6 @@ const RegisterPage = () => {
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="username">Tên đăng nhập</Label>
               <Input
@@ -120,7 +139,6 @@ const RegisterPage = () => {
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Số điện thoại</Label>
               <Input
@@ -132,7 +150,6 @@ const RegisterPage = () => {
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="password">Mật khẩu</Label>
               <Input
@@ -144,7 +161,6 @@ const RegisterPage = () => {
                 required
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
               <Input
@@ -156,7 +172,6 @@ const RegisterPage = () => {
                 required
               />
             </div>
-
             <Button type="submit" className="w-full bluemoon-gradient" disabled={isLoading}>
               {isLoading ? (
                 <svg className="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
@@ -179,7 +194,6 @@ const RegisterPage = () => {
               )}
               {isLoading ? "Đang đăng ký..." : "Đăng ký"}
             </Button>
-
             <div className="text-center mt-6">
               <p className="text-sm text-muted-foreground">
                 Đã có tài khoản?{" "}
