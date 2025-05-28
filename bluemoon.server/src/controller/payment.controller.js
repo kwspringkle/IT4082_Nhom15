@@ -74,8 +74,8 @@ export const getAllPayments = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Lỗi khi lấy danh sách khoản nộp',
-      error: error.message
-    });
+    error: error.message
+  });
   }
 };
 
@@ -92,7 +92,7 @@ export const getPaymentById = async (req, res) => {
       });
     }
 
-    // Thêm thông tin chi tiết
+    // Thêm thông tin chi tiết về hộ dân và khoản thu
     const household = households.find(h => h.id === payment.householdId);
     const fee = fees.find(f => f.id === payment.feeId);
     
@@ -108,25 +108,30 @@ export const getPaymentById = async (req, res) => {
         type: fee.type,
         mandatory: fee.mandatory
       }
-    };    res.status(200).json({
+    };
+
+    res.status(200).json({
       success: true,
       data: detailedPayment,
-      message: 'Payment details retrieved successfully'
+      message: 'Lấy chi tiết khoản nộp thành công'
     });
 
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error retrieving payment details',
+      message: 'Lỗi khi lấy chi tiết khoản nộp',
       error: error.message
     });
   }
 };
+      
 
 // Tạo khoản nộp mới
 export const createPayment = async (req, res) => {
   try {
-    const { householdId, feeId, amount, dueDate, note } = req.body;    // Validate input data
+    const { householdId, feeId, amount, dueDate, note } = req.body;
+
+    // Validate input data
     if (!householdId || !feeId || !amount || !dueDate) {
       return res.status(400).json({
         success: false,
@@ -356,5 +361,5 @@ export const deletePayment = async (req, res) => {
       message: 'Lỗi khi xóa khoản nộp',
       error: error.message
     });
-  }
-};
+    }
+}
