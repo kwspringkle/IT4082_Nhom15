@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, MoreHorizontal, Check, X } from "lucide-react";
@@ -27,17 +26,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -46,159 +45,220 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 
-// Mock users data
-const mockUsers = [
-  {
-    id: '1',
-    username: 'admin',
-    name: 'Administrator',
-    role: 'admin',
-    status: 'active',
-    email: 'admin@bluemoon.com',
-    phone: '0901234567',
-    createdAt: '2024-03-15',
-  },
-  {
-    id: '2',
-    username: 'staff_01',
-    name: 'Nguyễn Văn A',
-    role: 'staff',
-    status: 'active',
-    email: 'nguyenvana@example.com',
-    phone: '0912345678',
-    createdAt: '2024-03-20',
-  },
-  {
-    id: '3',
-    username: 'staff_02',
-    name: 'Trần Thị B',
-    role: 'staff',
-    status: 'active',
-    email: 'tranthib@example.com',
-    phone: '0923456789',
-    createdAt: '2024-04-02',
-  },
-  {
-    id: '4',
-    username: 'staff_03',
-    name: 'Lê Văn C',
-    role: 'staff',
-    status: 'inactive',
-    email: 'levanc@example.com',
-    phone: '0934567890',
-    createdAt: '2024-04-15',
-  },
-  {
-    id: '5',
-    username: 'newuser',
-    name: 'Phạm Thị D',
-    role: 'staff',
-    status: 'pending',
-    email: 'phamthid@example.com',
-    phone: '0945678901',
-    createdAt: '2024-05-10',
-  },
-];
-
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [users, setUsers] = useState(mockUsers);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [openCreateDialog, setOpenCreateDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
   const [newUser, setNewUser] = useState({
     username: '',
-    name: '',
+    fullname: '',
     email: '',
     phone: '',
-    role: 'staff',
+    role: 'ROLE_STAFF',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
+  const [editUser, setEditUser] = useState({
+    id: '',
+    username: '',
+    fullname: '',
+    email: '',
+    phone: '',
+    role: 'ROLE_STAFF',
+  });
+
+  // Lấy danh sách người dùng từ API
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/accounts', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Không thể lấy danh sách người dùng');
+      }
+      setUsers(data); // Giả sử API trả về mảng users
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Có lỗi khi lấy danh sách người dùng",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredUsers = users.filter(
     (user) =>
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.fullname.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.phone.includes(searchTerm)
   );
 
-  const handleCreateUser = () => {
+  const handleCreateUser = async () => {
     if (newUser.password !== newUser.confirmPassword) {
       toast({
         title: "Lỗi",
         description: "Mật khẩu và xác nhận mật khẩu không khớp",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
-    
-    const id = (users.length + 1).toString();
-    const createdAt = new Date().toISOString().split('T')[0];
-    
-    const createdUser = {
-      id,
-      username: newUser.username,
-      name: newUser.name,
-      role: newUser.role as 'admin' | 'staff',
-      status: 'active',
-      email: newUser.email,
-      phone: newUser.phone,
-      createdAt
-    };
-    
-    setUsers([...users, createdUser]);
-    setOpenDialog(false);
-    toast({
-      title: "Thành công",
-      description: "Tạo người dùng mới thành công"
-    });
-    
-    // Reset form
-    setNewUser({
-      username: '',
-      name: '',
-      email: '',
-      phone: '',
-      role: 'staff',
-      password: '',
-      confirmPassword: ''
-    });
+
+    try {
+      const response = await fetch('http://localhost:3000/api/accounts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          username: newUser.username,
+          fullname: newUser.fullname,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role,
+          password: newUser.password,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Tạo người dùng thất bại');
+      }
+
+      setUsers([...users, data]); // Thêm user mới vào danh sách
+      setOpenCreateDialog(false);
+      toast({
+        title: "Thành công",
+        description: "Tạo người dùng mới thành công",
+      });
+
+      // Reset form
+      setNewUser({
+        username: '',
+        fullname: '',
+        email: '',
+        phone: '',
+        role: 'ROLE_STAFF',
+        password: '',
+        confirmPassword: '',
+      });
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Có lỗi khi tạo người dùng",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditUser = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/accounts/${editUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          username: editUser.username,
+          fullname: editUser.fullname,
+          email: editUser.email,
+          phone: editUser.phone,
+          role: editUser.role,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Cập nhật người dùng thất bại');
+      }
+
+      setUsers(users.map(user => user._id === editUser.id ? data : user));
+      setOpenEditDialog(false);
+      toast({
+        title: "Thành công",
+        description: "Cập nhật người dùng thành công",
+      });
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Có lỗi khi cập nhật người dùng",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleStatusChange = async (userId, action) => {
+    const endpoint = action === 'lock' 
+      ? `http://localhost:3000/api/accounts/${userId}/lock`
+      : `http://localhost:3000/api/accounts/${userId}/unlock`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || `Không thể ${action === 'lock' ? 'khóa' : 'mở khóa'} tài khoản`);
+      }
+
+      setUsers(users.map(user => user._id === userId ? { ...user, status: action === 'lock' ? 'inactive' : 'active' } : user));
+      toast({
+        title: "Thành công",
+        description: `Đã ${action === 'lock' ? 'khóa' : 'mở khóa'} tài khoản`,
+      });
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: error.message || `Có lỗi khi ${action === 'lock' ? 'khóa' : 'mở khóa'} tài khoản`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleInputChange = (e, type) => {
     const { name, value } = e.target;
-    setNewUser({
-      ...newUser,
-      [name]: value
-    });
+    if (type === 'create') {
+      setNewUser({ ...newUser, [name]: value });
+    } else {
+      setEditUser({ ...editUser, [name]: value });
+    }
   };
 
-  const handleRoleChange = (value: string) => {
-    setNewUser({
-      ...newUser,
-      role: value
-    });
+  const handleRoleChange = (value, type) => {
+    if (type === 'create') {
+      setNewUser({ ...newUser, role: value });
+    } else {
+      setEditUser({ ...editUser, role: value });
+    }
   };
 
-  const handleStatusChange = (userId: string, newStatus: 'active' | 'inactive' | 'pending') => {
-    const updatedUsers = users.map(user => 
-      user.id === userId ? { ...user, status: newStatus } : user
-    );
-    setUsers(updatedUsers);
-    
-    const statusText = newStatus === 'active' 
-      ? 'kích hoạt' 
-      : newStatus === 'inactive' 
-        ? 'vô hiệu hóa' 
-        : 'chờ xét duyệt';
-    
-    toast({
-      title: "Thành công",
-      description: `Đã ${statusText} tài khoản người dùng`
+  const handleOpenEditDialog = (user) => {
+    setEditUser({
+      id: user._id,
+      username: user.username,
+      fullname: user.fullname,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
     });
+    setOpenEditDialog(true);
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status) => {
     switch (status) {
       case 'active':
         return <Badge className="bg-green-100 text-green-800">Hoạt động</Badge>;
@@ -210,15 +270,15 @@ const UserManagement = () => {
         return <Badge>{status}</Badge>;
     }
   };
-  
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'admin':
+
+  const getRoleBadge = (user) => {
+    switch (user.role) {
+      case 'ROLE_ADMIN':
         return <Badge className="bg-blue-100 text-blue-800">Quản trị viên</Badge>;
-      case 'staff':
+      case 'ROLE_STAFF':
         return <Badge className="bg-purple-100 text-purple-800">Nhân viên</Badge>;
       default:
-        return <Badge>{role}</Badge>;
+        return <Badge>{user.role}</Badge>;
     }
   };
 
@@ -228,12 +288,12 @@ const UserManagement = () => {
         <div>
           <h1 className="text-2xl font-bold mb-2">Quản lý người dùng</h1>
           <p className="text-muted-foreground">
-            Quản lý danh sách tài khoản người dùng hệ thống
+            Quản trị danh sách tài khoản người dùng hệ thống
           </p>
         </div>
-        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <Dialog open={openCreateDialog} onOpenChange={setOpenCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-accent">
+            <Button className="bg-blue-600">
               <Plus className="mr-2 h-4 w-4" />
               Tạo người dùng mới
             </Button>
@@ -249,93 +309,90 @@ const UserManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="username">Tên đăng nhập</Label>
-                  <Input 
-                    id="username" 
+                  <Input
+                    id="username"
                     name="username"
-                    value={newUser.username} 
-                    onChange={handleInputChange}
+                    value={newUser.username}
+                    onChange={(e) => handleInputChange(e, 'create')}
                     placeholder="Nhập tên đăng nhập"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Vai trò</Label>
-                  <Select 
-                    value={newUser.role} 
-                    onValueChange={handleRoleChange}
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(value) => handleRoleChange(value, 'create')}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn vai trò" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="admin">Quản trị viên</SelectItem>
-                      <SelectItem value="staff">Nhân viên</SelectItem>
+                      <SelectItem value="ROLE_ADMIN">Quản trị viên</SelectItem>
+                      <SelectItem value="ROLE_STAFF">Nhân viên</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              
               <div className="space-y-2">
-                <Label htmlFor="name">Họ và tên</Label>
-                <Input 
-                  id="name" 
-                  name="name"
-                  value={newUser.name} 
-                  onChange={handleInputChange}
+                <Label htmlFor="fullname">Họ và tên</Label>
+                <Input
+                  id="fullname"
+                  name="fullname"
+                  value={newUser.fullname}
+                  onChange={(e) => handleInputChange(e, 'create')}
                   placeholder="Nhập họ và tên"
                 />
               </div>
-              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
+                  <Input
+                    id="email"
                     name="email"
                     type="email"
-                    value={newUser.email} 
-                    onChange={handleInputChange}
+                    value={newUser.email}
+                    onChange={(e) => handleInputChange(e, 'create')}
                     placeholder="Nhập email"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Số điện thoại</Label>
-                  <Input 
-                    id="phone" 
+                  <Input
+                    id="phone"
                     name="phone"
-                    value={newUser.phone} 
-                    onChange={handleInputChange}
+                    value={newUser.phone}
+                    onChange={(e) => handleInputChange(e, 'create')}
                     placeholder="Nhập số điện thoại"
                   />
                 </div>
               </div>
-              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="password">Mật khẩu</Label>
-                  <Input 
-                    id="password" 
+                  <Input
+                    id="password"
                     name="password"
                     type="password"
-                    value={newUser.password} 
-                    onChange={handleInputChange}
+                    value={newUser.password}
+                    onChange={(e) => handleInputChange(e, 'create')}
                     placeholder="Nhập mật khẩu"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
-                  <Input 
-                    id="confirmPassword" 
+                  <Input
+                    id="confirmPassword"
                     name="confirmPassword"
                     type="password"
-                    value={newUser.confirmPassword} 
-                    onChange={handleInputChange}
+                    value={newUser.confirmPassword}
+                    onChange={(e) => handleInputChange(e, 'create')}
                     placeholder="Xác nhận mật khẩu"
                   />
                 </div>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpenDialog(false)}>Hủy</Button>
+              <Button variant="outline" onClick={() => setOpenCreateDialog(false)}>Hủy</Button>
               <Button onClick={handleCreateUser}>Tạo người dùng</Button>
             </DialogFooter>
           </DialogContent>
@@ -374,16 +431,14 @@ const UserManagement = () => {
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    {user.name}
-                  </TableCell>
+                <TableRow key={user._id}>
+                  <TableCell className="font-medium">{user.fullname}</TableCell>
                   <TableCell>{user.username}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.phone}</TableCell>
-                  <TableCell>{getRoleBadge(user.role)}</TableCell>
+                  <TableCell>{getRoleBadge(user)}</TableCell>
                   <TableCell>{getStatusBadge(user.status)}</TableCell>
-                  <TableCell>{user.createdAt}</TableCell>
+                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -394,21 +449,17 @@ const UserManagement = () => {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Tùy chọn</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => toast({ title: "Thông báo", description: "Chức năng chỉnh sửa đang phát triển" })}>
+                        <DropdownMenuItem onClick={() => handleOpenEditDialog(user)}>
                           Chỉnh sửa
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toast({ title: "Thông báo", description: "Chức năng đổi mật khẩu đang phát triển" })}>
-                          Đổi mật khẩu
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
                         {user.status !== 'active' && (
-                          <DropdownMenuItem onClick={() => handleStatusChange(user.id, 'active')}>
+                          <DropdownMenuItem onClick={() => handleStatusChange(user._id, 'unlock')}>
                             <Check className="h-4 w-4 mr-2 text-green-600" />
                             Kích hoạt
                           </DropdownMenuItem>
                         )}
                         {user.status !== 'inactive' && (
-                          <DropdownMenuItem onClick={() => handleStatusChange(user.id, 'inactive')}>
+                          <DropdownMenuItem onClick={() => handleStatusChange(user._id, 'lock')}>
                             <X className="h-4 w-4 mr-2 text-red-600" />
                             Vô hiệu hóa
                           </DropdownMenuItem>
@@ -422,6 +473,84 @@ const UserManagement = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog chỉnh sửa người dùng */}
+      <Dialog open={openEditDialog} onOpenChange={setOpenEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Chỉnh sửa người dùng</DialogTitle>
+            <DialogDescription>
+              Cập nhật thông tin tài khoản người dùng trong hệ thống.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-username">Tên đăng nhập</Label>
+                <Input
+                  id="edit-username"
+                  name="username"
+                  value={editUser.username}
+                  onChange={(e) => handleInputChange(e, 'edit')}
+                  placeholder="Nhập tên đăng nhập"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Vai trò</Label>
+                <Select
+                  value={editUser.role}
+                  onValueChange={(value) => handleRoleChange(value, 'edit')}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn vai trò" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ROLE_ADMIN">Quản trị viên</SelectItem>
+                    <SelectItem value="ROLE_STAFF">Nhân viên</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-fullname">Họ và tên</Label>
+              <Input
+                id="edit-fullname"
+                name="fullname"
+                value={editUser.fullname}
+                onChange={(e) => handleInputChange(e, 'edit')}
+                placeholder="Nhập họ và tên"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  name="email"
+                  type="email"
+                  value={editUser.email}
+                  onChange={(e) => handleInputChange(e, 'edit')}
+                  placeholder="Nhập email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Số điện thoại</Label>
+                <Input
+                  id="edit-phone"
+                  name="phone"
+                  value={editUser.phone}
+                  onChange={(e) => handleInputChange(e, 'edit')}
+                  placeholder="Nhập số điện thoại"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenEditDialog(false)}>Hủy</Button>
+            <Button onClick={handleEditUser}>Cập nhật</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

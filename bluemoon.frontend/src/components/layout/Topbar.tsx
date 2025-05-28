@@ -1,9 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Menu, User, LogOut } from "lucide-react";
-
-// Import from our consolidated UI components file
-import { Button } from "@/components/ui/base-components";
-import { Avatar, AvatarFallback } from "@/components/ui/base-components";
+import { Button, Avatar, AvatarFallback } from "@/components/ui/base-components";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from "@/hooks/use-toast";
 
 interface TopBarProps {
   sidebarOpen: boolean;
@@ -20,11 +18,50 @@ interface TopBarProps {
 
 export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
   const navigate = useNavigate();
-  
-  const handleLogout = () => {
-    navigate("/login");
+
+  const handleLogout = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast({
+        title: "Không có phiên đăng nhập",
+        description: "Bạn chưa đăng nhập.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Đăng xuất thất bại');
+      }
+
+      localStorage.removeItem('token');
+      toast({
+        title: "Đăng xuất thành công",
+        description: "Bạn đã đăng xuất khỏi hệ thống BlueMoon",
+      });
+      navigate("/login");
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Lỗi đăng xuất",
+        description: error instanceof Error ? error.message : "Có lỗi xảy ra khi đăng xuất",
+        variant: "destructive",
+      });
+    }
   };
-  
+
   return (
     <header className="flex h-16 items-center border-b bg-card px-4 md:px-6">
       <Button
