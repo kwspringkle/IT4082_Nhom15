@@ -10,7 +10,12 @@ export const register = async (req, res) => {
   const { fullname, username, email, phone, password } = req.body;
 
   try {
-    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    const finalEmail = email && email.trim() !== '' ? email : `${username}@bluemoon`;
+
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email: finalEmail }]
+    });
+
     if (existingUser) {
       return res.status(400).json({ message: 'Tên đăng nhập hoặc email đã tồn tại' });
     }
@@ -20,7 +25,7 @@ export const register = async (req, res) => {
     const newUser = new User({
       fullname,
       username,
-      email,
+      email: finalEmail,
       phone,
       password: hashedPassword,
     });
@@ -32,6 +37,7 @@ export const register = async (req, res) => {
     return res.status(500).json({ message: 'Lỗi máy chủ' });
   }
 };
+
 
 // Đăng nhập
 export const login = async (req, res) => {
