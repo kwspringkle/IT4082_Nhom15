@@ -18,8 +18,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Search, Plus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import AddFeeDialog from "@/components/forms/AddFeeDialog";
+import ViewFeeDialog from "@/components/dialogs/ViewFeeDialog";
+import EditFeeDialog from "@/components/dialogs/EditFeeDialog";
+import { toast } from "@/hooks/use-toast";
 
 const FeeList = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,7 +41,7 @@ const FeeList = () => {
       fee.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getFeeTypeLabel = (type: string) => {
+  const getFeeTypeLabel = (type) => {
     switch (type) {
       case 'service':
         return 'Phí dịch vụ';
@@ -48,7 +58,7 @@ const FeeList = () => {
     }
   };
 
-  const getFeeTypeColor = (type: string) => {
+  const getFeeTypeColor = (type) => {
     switch (type) {
       case 'service':
         return 'bg-blue-100 text-blue-800';
@@ -65,6 +75,14 @@ const FeeList = () => {
     }
   };
 
+  const handleDelete = (fee) => {
+    toast({
+      title: "Đã xóa",
+      description: `Đã xóa khoản phí ${fee.name}`,
+      variant: "destructive",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -74,10 +92,12 @@ const FeeList = () => {
             Quản lý các loại phí và khoản đóng góp tại chung cư BlueMoon
           </p>
         </div>
-        <Button className="bg-accent">
-          <Plus className="mr-2 h-4 w-4" />
-          Thêm khoản phí mới
-        </Button>
+        <AddFeeDialog>
+          <Button className="bg-accent">
+            <Plus className="mr-2 h-4 w-4" />
+            Thêm khoản phí mới
+          </Button>
+        </AddFeeDialog>
       </div>
 
       <Card>
@@ -136,9 +156,34 @@ const FeeList = () => {
                   </TableCell>
                   <TableCell>{fee.description}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      Chi tiết
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <ViewFeeDialog fee={fee}>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Xem chi tiết
+                          </DropdownMenuItem>
+                        </ViewFeeDialog>
+                        <EditFeeDialog fee={fee}>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Sửa khoản phí
+                          </DropdownMenuItem>
+                        </EditFeeDialog>
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => handleDelete(fee)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Xóa khoản phí
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
