@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { mockResidents, mockHouseholds } from "@/data/mockData";
 import { Input } from "@/components/ui/input";
@@ -18,7 +17,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Search, Plus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import AddResidentDialog from "@/components/forms/AddResidentDialog";
+import ViewResidentDialog from "@/components/dialogs/ViewResidentDialog";
+import EditResidentDialog from "@/components/dialogs/EditResidentDialog";
+import { toast } from "@/hooks/use-toast";
 
 const ResidentList = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,9 +40,24 @@ const ResidentList = () => {
       resident.phoneNumber.includes(searchTerm)
   );
 
-  const getHouseholdApartment = (householdId: string) => {
+  const getHouseholdApartment = (householdId) => {
     const household = mockHouseholds.find(h => h.id === householdId);
     return household ? household.apartmentNumber : 'N/A';
+  };
+
+  const getStatusBadge = (relation) => {
+    if (relation === "-") {
+      return <Badge variant="secondary">Tạm trú/vắng</Badge>;
+    }
+    return null;
+  };
+
+  const handleDelete = (resident) => {
+    toast({
+      title: "Đã xóa",
+      description: `Đã xóa nhân khẩu ${resident.name}`,
+      variant: "destructive",
+    });
   };
 
   return (
@@ -44,10 +69,12 @@ const ResidentList = () => {
             Quản lý thông tin nhân khẩu trong chung cư BlueMoon
           </p>
         </div>
-        <Button className="bg-accent">
-          <Plus className="mr-2 h-4 w-4" />
-          Thêm nhân khẩu mới
-        </Button>
+        <AddResidentDialog>
+          <Button className="bg-accent">
+            <Plus className="mr-2 h-4 w-4" />
+            Thêm nhân khẩu mới
+          </Button>
+        </AddResidentDialog>
       </div>
 
       <Card>
@@ -76,6 +103,7 @@ const ResidentList = () => {
                 <TableHead>Ngày sinh</TableHead>
                 <TableHead>Căn hộ</TableHead>
                 <TableHead>Quan hệ</TableHead>
+                <TableHead>Trạng thái</TableHead>
                 <TableHead className="text-right">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
@@ -92,10 +120,36 @@ const ResidentList = () => {
                   <TableCell>{new Date(resident.dateOfBirth).toLocaleDateString('vi-VN')}</TableCell>
                   <TableCell>{getHouseholdApartment(resident.householdId)}</TableCell>
                   <TableCell>{resident.relation}</TableCell>
+                  <TableCell>{getStatusBadge(resident.relation)}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      Chi tiết
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <ViewResidentDialog resident={resident}>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Xem chi tiết
+                          </DropdownMenuItem>
+                        </ViewResidentDialog>
+                        <EditResidentDialog resident={resident}>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Sửa thông tin
+                          </DropdownMenuItem>
+                        </EditResidentDialog>
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => handleDelete(resident)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Xóa nhân khẩu
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
