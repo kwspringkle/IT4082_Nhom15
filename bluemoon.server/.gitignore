@@ -3,7 +3,7 @@ node_modules/
 
 # File chứa biến môi trường
 .env
-
+env/
 # Log files
 npm-debug.log*
 yarn-debug.log*

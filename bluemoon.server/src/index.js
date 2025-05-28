@@ -8,12 +8,18 @@ import historyRouter from './route/history.routes.js';
 import feeRouter from './route/fee.routes.js';
 import accountRouter from './route/account.routes.js';
 import { connectDB } from './config/db.js';
-
+import cors from 'cors';
 
 dotenv.config(); // load biến môi trường từ .env
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+app.use(cors({
+  origin: 'http://localhost:8080', // Cho phép origin của frontend
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức cho phép
+  allowedHeaders: ['Content-Type', 'Authorization'], // Headers cho phép
+}));
 
 app.use(express.json());
 
