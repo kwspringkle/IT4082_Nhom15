@@ -17,7 +17,7 @@ const port = process.env.PORT || 3000;
 
 app.use(cors({
   origin: 'http://localhost:8080', // Cho phép origin của frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Các phương thức cho phép
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Các phương thức cho phép
   allowedHeaders: ['Content-Type', 'Authorization'], // Headers cho phép
 }));
 
