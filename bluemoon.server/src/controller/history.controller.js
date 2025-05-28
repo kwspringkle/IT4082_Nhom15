@@ -1,12 +1,21 @@
-import { citizenHistory } from '../seed/fakeCitizenHistory.js';
-import { citizens } from '../seed/fakeCitizens.js';
+import CitizenHistory from '../model/CitizenHistory.js';
+import Citizen from '../model/Citizen.js';
+import mongoose from 'mongoose';
 
 export const getCitizenHistory = async (req, res) => {
   try {
-    const citizenId = parseInt(req.params.id);
+    const citizenId = req.params.id;
 
-    // Kiểm tra xem nhân khẩu có tồn tại không
-    const citizen = citizens.find(c => c.id === citizenId);
+    // Kiểm tra định dạng ObjectId
+    if (!mongoose.Types.ObjectId.isValid(citizenId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID không hợp lệ'
+      });
+    }
+
+    // Tìm nhân khẩu theo ID
+    const citizen = await Citizen.findById(citizenId);
     if (!citizen) {
       return res.status(404).json({
         success: false,
@@ -14,13 +23,12 @@ export const getCitizenHistory = async (req, res) => {
       });
     }
 
-    // Lấy lịch sử thay đổi của nhân khẩu
-    const history = citizenHistory.filter(h => h.citizenId === citizenId);
+    // Tìm lịch sử thay đổi theo citizenId
+    const history = await CitizenHistory.find({ citizenId }).sort({ changedAt: -1 });
 
-    // Thêm thông tin chi tiết về nhân khẩu
     const response = {
-      citizen: citizen,
-      history: history
+      citizen,
+      history
     };
 
     if (history.length === 0) {
