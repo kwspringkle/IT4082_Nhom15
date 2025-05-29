@@ -1,12 +1,10 @@
-import { households } from '../seed/fakeHouseholds.js'; // dữ liệu giả
-import { payments } from '../seed/fakePayments.js';
-import { fees } from '../seed/fakeFees.js';
-
+import Household from '../model/Household.js';
+import Payment from '../model/Payment.js';
 
 // Lấy tất cả hộ khẩu
 export const getAllHouseholds = async (req, res) => {
   try {
-    const households = await Household.find().populate('userId', 'username email'); // populate nếu cần thông tin user
+    const households = await Household.find().populate('userId', 'username email');
     res.status(200).json({
       success: true,
       data: households,
@@ -49,7 +47,7 @@ export const getHouseholdById = async (req, res) => {
 export const createHousehold = async (req, res) => {
   try {
     const { apartment, floor, area, head, phone, members } = req.body;
-    const userId = req.user.id; // Giả sử userId có trong req.user sau khi auth
+    const userId = req.user.id; // userId lấy từ auth
 
     if (!apartment || !floor || !area || !head || !phone || !members) {
       return res.status(400).json({
@@ -121,30 +119,41 @@ export const updateHousehold = async (req, res) => {
 };
 
 // Xóa hộ khẩu
-export const deleteHousehold = (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = households.findIndex(h => h.id === id);
-  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy hộ khẩu' });
-
-  households.splice(index, 1);
-  res.json({ message: 'Xóa hộ khẩu thành công' });
+export const deleteHousehold = async (req, res) => {
+  try {
+    const deleted = await Household.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy hộ khẩu' });
+    }
+    res.json({ success: true, message: 'Xóa hộ khẩu thành công' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Lỗi khi xóa hộ khẩu', error: error.message });
+  }
 };
 
-// Lấy danh sách khoản nộp của một hộ cụ thể
+// Lấy danh sách khoản nộp của một hộ khẩu
 export const getPaymentsByHousehold = async (req, res) => {
   try {
-    const householdId = parseInt(req.params.id);
-    // Lọc các khoản nộp theo householdId
-    const householdPayments = payments.filter(p => p.householdId === householdId);
-    // Gắn thêm thông tin khoản phí
-    const result = householdPayments.map(payment => {
-      const fee = fees.find(f => f.id === payment.feeId);
-      return {
-        ...payment,
-        feeName: fee ? fee.name : null,
-        feeType: fee ? fee.type : null
-      };
-    });
+    const householdId = req.params.id;
+    const payments = await Payment.find({ householdId }).populate('feeId', 'name type');
+    
+    // map lại để dễ dùng
+    const result = payments.map(p => ({
+      id: p._id,
+      householdId: p.householdId,
+      feeId: p.feeId._id,
+      feeName: p.feeId.name,
+      feeType: p.feeId.type,
+      amount: p.amount,
+      dueDate: p.dueDate,
+      status: p.status,
+      paidDate: p.paidDate,
+      paidAmount: p.paidAmount,
+      note: p.note,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt
+    }));
+
     res.status(200).json({
       success: true,
       data: result,
