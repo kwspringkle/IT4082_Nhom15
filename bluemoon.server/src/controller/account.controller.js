@@ -28,6 +28,7 @@ export const createAccount = async (req, res) => {
     await newUser.save();
     res.status(201).json(newUser);
   } catch (err) {
+    console.log(err);
     res.status(400).json({ message: 'Không thể tạo tài khoản', error: err.message });
   }
 };

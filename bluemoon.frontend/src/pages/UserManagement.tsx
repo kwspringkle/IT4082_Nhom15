@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, MoreHorizontal, Check, X } from "lucide-react";
+import { Search, Plus, MoreHorizontal, Check, X, Trash2} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -55,7 +55,7 @@ const UserManagement = () => {
     fullname: '',
     email: '',
     phone: '',
-    role: 'ROLE_STAFF',
+    role: 'Nhân viên',
     password: '',
     confirmPassword: '',
   });
@@ -65,7 +65,7 @@ const UserManagement = () => {
     fullname: '',
     email: '',
     phone: '',
-    role: 'ROLE_STAFF',
+    role: 'Nhân viên',
   });
 
   // Lấy danh sách người dùng từ API
@@ -147,7 +147,7 @@ const UserManagement = () => {
         fullname: '',
         email: '',
         phone: '',
-        role: 'ROLE_STAFF',
+        role: 'Nhân viên',
         password: '',
         confirmPassword: '',
       });
@@ -273,15 +273,42 @@ const UserManagement = () => {
 
   const getRoleBadge = (user) => {
     switch (user.role) {
-      case 'ROLE_ADMIN':
+      case 'Quản trị viên':
         return <Badge className="bg-blue-100 text-blue-800">Quản trị viên</Badge>;
-      case 'ROLE_STAFF':
+      case 'Nhân viên':
         return <Badge className="bg-purple-100 text-purple-800">Nhân viên</Badge>;
       default:
         return <Badge>{user.role}</Badge>;
     }
   };
+  const handleDeleteUser = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/accounts/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
 
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Xóa người dùng thất bại');
+      }
+
+      setUsers(users.filter(user => user._id !== userId));
+      toast({
+        title: "Thành công",
+        description: "Xóa người dùng thành công",
+      });
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Có lỗi khi xóa người dùng",
+        variant: "destructive",
+      });
+    }
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -327,8 +354,8 @@ const UserManagement = () => {
                       <SelectValue placeholder="Chọn vai trò" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ROLE_ADMIN">Quản trị viên</SelectItem>
-                      <SelectItem value="ROLE_STAFF">Nhân viên</SelectItem>
+                      <SelectItem value="Quản trị viên">Quản trị viên</SelectItem>
+                      <SelectItem value="Nhân viên">Nhân viên</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -464,6 +491,10 @@ const UserManagement = () => {
                             Vô hiệu hóa
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuItem onClick={() => handleDeleteUser(user._id)}>
+                          <Trash2 className="h-4 w-4 mr-2 text-red-600" />
+                          Xóa
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -505,8 +536,8 @@ const UserManagement = () => {
                     <SelectValue placeholder="Chọn vai trò" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ROLE_ADMIN">Quản trị viên</SelectItem>
-                    <SelectItem value="ROLE_STAFF">Nhân viên</SelectItem>
+                    <SelectItem value="Quản trị viên">Quản trị viên</SelectItem>
+                    <SelectItem value="Nhân viên">Nhân viên</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
