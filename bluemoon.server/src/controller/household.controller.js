@@ -1,4 +1,7 @@
-import Household from '../model/Household.js';
+import { households } from '../seed/fakeHouseholds.js'; // dữ liệu giả
+import { payments } from '../seed/fakePayments.js';
+import { fees } from '../seed/fakeFees.js';
+
 
 // Lấy tất cả hộ khẩu
 export const getAllHouseholds = async (req, res) => {
@@ -118,27 +121,39 @@ export const updateHousehold = async (req, res) => {
 };
 
 // Xóa hộ khẩu
-export const deleteHousehold = async (req, res) => {
+export const deleteHousehold = (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = households.findIndex(h => h.id === id);
+  if (index === -1) return res.status(404).json({ message: 'Không tìm thấy hộ khẩu' });
+
+  households.splice(index, 1);
+  res.json({ message: 'Xóa hộ khẩu thành công' });
+};
+
+// Lấy danh sách khoản nộp của một hộ cụ thể
+export const getPaymentsByHousehold = async (req, res) => {
   try {
-    const household = await Household.findById(req.params.id);
-
-    if (!household) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy hộ khẩu'
-      });
-    }
-
-    await Household.findByIdAndDelete(req.params.id);
-
+    const householdId = parseInt(req.params.id);
+    // Lọc các khoản nộp theo householdId
+    const householdPayments = payments.filter(p => p.householdId === householdId);
+    // Gắn thêm thông tin khoản phí
+    const result = householdPayments.map(payment => {
+      const fee = fees.find(f => f.id === payment.feeId);
+      return {
+        ...payment,
+        feeName: fee ? fee.name : null,
+        feeType: fee ? fee.type : null
+      };
+    });
     res.status(200).json({
       success: true,
-      message: 'Xóa hộ khẩu thành công'
+      data: result,
+      message: 'Lấy danh sách khoản nộp của hộ thành công'
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Lỗi khi xóa hộ khẩu',
+      message: 'Lỗi khi lấy danh sách khoản nộp của hộ',
       error: error.message
     });
   }

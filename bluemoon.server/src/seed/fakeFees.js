@@ -68,6 +68,28 @@ export const fees = [
     "status": "ACTIVE",
     "createdAt": "2025-05-23",
     "updatedAt": "2025-05-23"
+  },
+  {
+    "id": 7,
+    "name": "Phí bảo vệ",
+    "amount": 150000,
+    "type": "MONTHLY",
+    "description": "Phí dịch vụ bảo vệ an ninh chung cư",
+    "mandatory": true,
+    "status": "ACTIVE",
+    "createdAt": "2024-01-01",
+    "updatedAt": "2024-01-01"
+  },
+  {
+    "id": 8,
+    "name": "Phí internet",
+    "amount": 300000,
+    "type": "MONTHLY",
+    "description": "Phí sử dụng dịch vụ internet chung cư",
+    "mandatory": false,
+    "status": "ACTIVE",
+    "createdAt": "2024-01-01",
+    "updatedAt": "2024-01-01"
   }
 ];
 

@@ -4,7 +4,8 @@ import {
   getHouseholdById,
   createHousehold,
   updateHousehold,
-  deleteHousehold
+  deleteHousehold,
+  getPaymentsByHousehold
 } from '../controller/household.controller.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 
@@ -12,6 +13,9 @@ const router = express.Router();
 
 router.get('/', getAllHouseholds);
 router.get('/:id', getHouseholdById);
+
+// GET /api/households/:id/payments - Khoản nộp của một hộ cụ thể
+router.get('/:id/payments', getPaymentsByHousehold);
 
 // Áp dụng middleware auth
 router.post('/', authenticate, createHousehold);
