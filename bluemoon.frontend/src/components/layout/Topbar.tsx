@@ -92,11 +92,11 @@ export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel>Tài khoản</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
               <User className="mr-2 h-4 w-4" />
               <span>Hồ sơ</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>Đổi mật khẩu</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>Đổi mật khẩu</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
