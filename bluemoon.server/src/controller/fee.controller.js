@@ -4,23 +4,31 @@ import Fee from '../model/Fee.js';
 export const getAllFees = async (req, res) => {
   try {
     const { type, status } = req.query;
+    let results = [...fees];
 
-    const filter = {};
-    if (type) filter.type = type.toUpperCase();
-    if (status) filter.status = status.toUpperCase();
+    if (type) {
+      results = results.filter(fee => fee.type.toLowerCase() === type.toLowerCase());
+    }
+    if (status) {
+      results = results.filter(fee => fee.status.toLowerCase() === status.toLowerCase());
+    }
 
-    const fees = await Fee.find(filter).select('name'); // _id sẽ tự động trả về
-
-    if (fees.length === 0) {
+    if (results.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy khoản thu nào'
       });
     }
 
+    // Ẩn trường description khi trả về danh sách
+    const feesListResult = results.map(fee => {
+      const { description, ...rest } = fee;
+      return rest;
+    });
+
     res.status(200).json({
       success: true,
-      data: fees,
+      data: feesListResult,
       message: 'Lấy danh sách khoản thu thành công'
     });
   } catch (error) {
