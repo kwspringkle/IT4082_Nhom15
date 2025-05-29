@@ -1,5 +1,6 @@
 import User from '../model/User.js';
 
+
 // GET /api/accounts
 export const getAllAccounts = async (req, res) => {
   try {
@@ -74,5 +75,55 @@ export const unlockAccount = async (req, res) => {
     res.json({ message: 'Đã mở khóa tài khoản', user });
   } catch (err) {
     res.status(500).json({ message: 'Lỗi khi mở khóa tài khoản', error: err.message });
+  }
+};
+
+export const getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password'); // Assuming req.user is set by auth middleware
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+export const updateCurrentUser = async (req, res) => {
+  try {
+    const { username, email, fullname, phone } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { username, email, fullname, phone },
+      { new: true }
+    ).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+import bcrypt from 'bcryptjs';
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng' });
+    }
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    res.json({ message: 'Đổi mật khẩu thành công' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server' });
   }
 };

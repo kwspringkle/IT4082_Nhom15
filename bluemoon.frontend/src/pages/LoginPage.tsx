@@ -37,6 +37,7 @@ const LoginPage = () => {
       // Lưu token (nếu backend trả về token)
       if (data.token) {
         localStorage.setItem('token', data.token);
+        localStorage.setItem('username', data.username || username);
       }
 
       toast({

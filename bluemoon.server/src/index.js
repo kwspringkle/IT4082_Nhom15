@@ -30,13 +30,13 @@ connectDB();
 
 // Mount router đúng cách với app.use
 app.use('/api/auth', authRouter);
-app.use('/api/households', householdRouter);
+app.use('/api/households', householdRouter); //
 app.use('/api/citizens', citizenRouter);
 app.use('/api/search', searchRouter);
-app.use('/api/citizens', historyRouter);
-app.use('/api/fees', feeRouter);
+app.use('/api/citizens', historyRouter); //
+app.use('/api/fees', feeRouter);// Lấy hết tất cả thông tin
 app.use('/api/payments', paymentRouter);
-app.use('/api/statistics', statisticsRouter);
+app.use('/api/statistics', statisticsRouter); //
 app.use('/api/accounts', accountRouter);
 
 
