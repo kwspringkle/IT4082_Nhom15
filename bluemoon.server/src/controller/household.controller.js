@@ -1,4 +1,6 @@
 import { households } from '../seed/fakeHouseholds.js'; // dữ liệu giả
+import { payments } from '../seed/fakePayments.js';
+import { fees } from '../seed/fakeFees.js';
 
 
 // Lấy tất cả hộ khẩu
@@ -60,4 +62,33 @@ export const deleteHousehold = (req, res) => {
 
   households.splice(index, 1);
   res.json({ message: 'Xóa hộ khẩu thành công' });
+};
+
+// Lấy danh sách khoản nộp của một hộ cụ thể
+export const getPaymentsByHousehold = async (req, res) => {
+  try {
+    const householdId = parseInt(req.params.id);
+    // Lọc các khoản nộp theo householdId
+    const householdPayments = payments.filter(p => p.householdId === householdId);
+    // Gắn thêm thông tin khoản phí
+    const result = householdPayments.map(payment => {
+      const fee = fees.find(f => f.id === payment.feeId);
+      return {
+        ...payment,
+        feeName: fee ? fee.name : null,
+        feeType: fee ? fee.type : null
+      };
+    });
+    res.status(200).json({
+      success: true,
+      data: result,
+      message: 'Lấy danh sách khoản nộp của hộ thành công'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy danh sách khoản nộp của hộ',
+      error: error.message
+    });
+  }
 };
