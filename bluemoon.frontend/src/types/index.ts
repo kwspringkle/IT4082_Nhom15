@@ -27,7 +27,8 @@ export interface Fee {
   ratePerSqm: number | null;
   description: string;
   mandatory: boolean;
-  dueDay: number;
+  deadline?: Date;
+  repeat: boolean;
 }
 
 export interface Payment {
