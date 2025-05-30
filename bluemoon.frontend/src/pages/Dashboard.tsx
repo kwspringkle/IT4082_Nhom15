@@ -1,42 +1,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  CircleOff,
   Home,
   Users,
   Wallet,
   CircleCheck,
-  CircleDollarSign,
+  FileText,
+  CreditCard,
+  Settings,
+  BarChart3,
+  ArrowRight,
 } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const Dashboard = () => {
-  // Mock data
-  const paymentStatus = [
-    { name: "Đã thu", value: 68, color: "#4ade80" },
-    { name: "Chưa thu", value: 22, color: "#f87171" },
-    { name: "Trễ hạn", value: 10, color: "#facc15" },
-  ];
-  
-  const monthlyRevenue = [
-    { month: "T1", amount: 120000000 },
-    { month: "T2", amount: 125000000 },
-    { month: "T3", amount: 130000000 },
-    { month: "T4", amount: 128000000 },
-    { month: "T5", amount: 126000000 },
-    { month: "T6", amount: 132000000 },
-  ];
+  const navigate = useNavigate();
 
   const statCards = [
     {
@@ -73,19 +51,50 @@ const Dashboard = () => {
     },
   ];
 
-  // Format the number with commas
-  const formatNumber = (value: number) => {
-    return value.toLocaleString("vi-VN");
-  };
-
-  // Format the value as currency
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
+  const navigationCards = [
+    {
+      title: "Quản lý hộ khẩu",
+      description: "Xem và quản lý thông tin các hộ khẩu",
+      icon: Home,
+      path: "/households",
+      color: "bg-blue-500",
+    },
+    {
+      title: "Quản lý nhân khẩu",
+      description: "Xem và quản lý thông tin cư dân",
+      icon: Users,
+      path: "/residents",
+      color: "bg-green-500",
+    },
+    {
+      title: "Quản lý thu phí",
+      description: "Thiết lập và quản lý các khoản phí",
+      icon: CreditCard,
+      path: "/fees",
+      color: "bg-purple-500",
+    },
+    {
+      title: "Thanh toán",
+      description: "Theo dõi tình trạng thanh toán",
+      icon: Wallet,
+      path: "/payments",
+      color: "bg-orange-500",
+    },
+    {
+      title: "Báo cáo & Thống kê",
+      description: "Xem báo cáo và phân tích dữ liệu",
+      icon: BarChart3,
+      path: "/reports",
+      color: "bg-indigo-500",
+    },
+    {
+      title: "Quản lý người dùng",
+      description: "Quản lý tài khoản và phân quyền",
+      icon: Settings,
+      path: "/users",
+      color: "bg-red-500",
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -122,76 +131,33 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>Tình trạng thanh toán phí (tháng 5/2025)</CardTitle>
-            <CardDescription>
-              Tỉ lệ thanh toán các khoản phí của cư dân
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={paymentStatus}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) =>
-                    `${name}: ${(percent * 100).toFixed(0)}%`
-                  }
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Truy cập nhanh</h2>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {navigationCards.map((card, index) => (
+            <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer group">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className={`${card.color} p-2 rounded-lg text-white`}>
+                    <card.icon className="h-6 w-6" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <CardTitle className="text-lg">{card.title}</CardTitle>
+                <CardDescription>{card.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate(card.path)}
                 >
-                  {paymentStatus.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={entry.color}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) => [`${Number(value)}%`, "Tỉ lệ"]}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>Thu phí 6 tháng gần đây</CardTitle>
-            <CardDescription>
-              Tổng số tiền thu được từ các khoản phí
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={monthlyRevenue}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value) => [formatCurrency(Number(value)), "Doanh thu"]}
-                  labelFormatter={(label) => `Tháng ${label}`}
-                />
-                <Legend />
-                <Bar dataKey="amount" name="Doanh thu" fill="#4f46e5" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+                  Truy cập
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );

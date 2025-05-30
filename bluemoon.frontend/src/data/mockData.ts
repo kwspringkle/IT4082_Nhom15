@@ -1,5 +1,4 @@
-
-import { Household, Resident, Fee, Payment } from '@/types';
+import { Household, Resident, Fee, Payment, User } from '@/types';
 
 // Mock data for households
 export const mockHouseholds: Household[] = [
@@ -114,7 +113,8 @@ export const mockFees: Fee[] = [
     ratePerSqm: 16500,
     description: 'Phí dịch vụ tính theo diện tích căn hộ',
     mandatory: true,
-    dueDay: 15,
+    deadline: new Date('2025-06-30'),
+    repeat: true,
   },
   {
     id: '2',
@@ -124,7 +124,8 @@ export const mockFees: Fee[] = [
     ratePerSqm: 7000,
     description: 'Phí quản lý tính theo diện tích căn hộ',
     mandatory: true,
-    dueDay: 15,
+    deadline: new Date('2025-06-30'),
+    repeat: true,
   },
   {
     id: '3',
@@ -134,7 +135,8 @@ export const mockFees: Fee[] = [
     ratePerSqm: null,
     description: 'Đóng góp tự nguyện',
     mandatory: false,
-    dueDay: 30,
+    deadline: new Date('2025-06-30'),
+    repeat: true,
   },
   {
     id: '4',
@@ -144,7 +146,8 @@ export const mockFees: Fee[] = [
     ratePerSqm: null,
     description: 'Phí gửi xe máy hàng tháng',
     mandatory: true,
-    dueDay: 15,
+    deadline: new Date('2025-06-30'),
+    repeat: true,
   },
   {
     id: '5',
@@ -154,7 +157,42 @@ export const mockFees: Fee[] = [
     ratePerSqm: null,
     description: 'Phí gửi ô tô hàng tháng',
     mandatory: true,
-    dueDay: 15,
+    deadline: new Date('2025-06-30'),
+    repeat: true,
+  },
+];
+
+// Mock data for users
+export const mockUsers: User[] = [
+  {
+    id: '1',
+    username: 'admin1',
+    name: 'Nguyễn Văn Admin',
+    role: 'admin',
+    email: 'admin1@bluemoon.com',
+    phone: '0901234567',
+    status: 'active',
+    createdAt: '2023-01-01T00:00:00.000Z',
+  },
+  {
+    id: '2',
+    username: 'staff1',
+    name: 'Trần Thị Nhân Viên',
+    role: 'staff',
+    email: 'staff1@bluemoon.com',
+    phone: '0912345678',
+    status: 'active',
+    createdAt: '2023-02-01T00:00:00.000Z',
+  },
+  {
+    id: '3',
+    username: 'superadmin1',
+    name: 'Lê Hoàng Quản Trị',
+    role: 'superadmin',
+    email: 'superadmin1@bluemoon.com',
+    phone: '0923456789',
+    status: 'active',
+    createdAt: '2023-03-01T00:00:00.000Z',
   },
 ];
 
@@ -170,10 +208,15 @@ export const generateMockPayments = (): Payment[] => {
   // For each household and each fee, create payments for current and previous months
   mockHouseholds.forEach(household => {
     mockFees.forEach(fee => {
-      // For current month
-      const dueDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), fee.dueDay);
+      // Calculate amount based on ratePerSqm or fixed amount
       const amount = fee.ratePerSqm ? fee.ratePerSqm * household.area : fee.amount || 0;
 
+      // Use fee.deadline for dueDate, or fallback to end of month if undefined
+      const dueDate = fee.deadline
+        ? new Date(fee.deadline)
+        : new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0); // Last day of current month
+
+      // For current month
       payments.push({
         id: `${household.id}-${fee.id}-${currentMonth}`,
         householdId: household.id,
@@ -181,12 +224,21 @@ export const generateMockPayments = (): Payment[] => {
         amount,
         period: currentMonth,
         status: Math.random() > 0.3 ? 'paid' : 'unpaid',
-        paidAt: Math.random() > 0.3 ? new Date(currentDate.getFullYear(), currentDate.getMonth(), Math.floor(Math.random() * fee.dueDay) + 1).toISOString() : null,
+        paidAt: Math.random() > 0.3
+          ? new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth(),
+              Math.floor(Math.random() * (dueDate.getDate() || 28)) + 1
+            ).toISOString()
+          : null,
         dueDate: dueDate.toISOString(),
       });
 
       // For previous month
-      const prevDueDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, fee.dueDay);
+      const prevDueDate = fee.deadline
+        ? new Date(fee.deadline.getFullYear(), fee.deadline.getMonth() - 1, fee.deadline.getDate())
+        : new Date(currentDate.getFullYear(), currentDate.getMonth(), 0); // Last day of previous month
+
       payments.push({
         id: `${household.id}-${fee.id}-${previousMonth}`,
         householdId: household.id,
@@ -194,7 +246,11 @@ export const generateMockPayments = (): Payment[] => {
         amount,
         period: previousMonth,
         status: 'paid',
-        paidAt: new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, Math.floor(Math.random() * fee.dueDay) + 1).toISOString(),
+        paidAt: new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth() - 1,
+          Math.floor(Math.random() * (prevDueDate.getDate() || 28)) + 1
+        ).toISOString(),
         dueDate: prevDueDate.toISOString(),
       });
     });
@@ -208,22 +264,22 @@ export const mockPayments = generateMockPayments();
 export const calculatePaymentStats = () => {
   const currentDate = new Date();
   const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-  
+
   const currentMonthPayments = mockPayments.filter(payment => payment.period === currentMonth);
-  
+
   const totalExpected = currentMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const totalPaid = currentMonthPayments
     .filter(payment => payment.status === 'paid')
     .reduce((sum, payment) => sum + payment.amount, 0);
-  
+
   const paidCount = currentMonthPayments.filter(payment => payment.status === 'paid').length;
   const unpaidCount = currentMonthPayments.filter(payment => payment.status === 'unpaid').length;
-  
+
   return {
     totalExpected,
     totalPaid,
     paidCount,
     unpaidCount,
-    paymentRate: totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0
+    paymentRate: totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0,
   };
 };
