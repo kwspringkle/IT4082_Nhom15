@@ -4,8 +4,12 @@ import Fee from '../model/Fee.js';
 export const getAllFees = async (req, res) => {
   try {
     const { type, status } = req.query;
-    let results = [...fees];
 
+    // Lấy tất cả khoản thu từ MongoDB
+    const allFees = await Fee.find();
+    let results = [...allFees];
+
+    // Áp dụng filter nếu có
     if (type) {
       results = results.filter(fee => fee.type.toLowerCase() === type.toLowerCase());
     }
@@ -20,9 +24,9 @@ export const getAllFees = async (req, res) => {
       });
     }
 
-    // Ẩn trường description khi trả về danh sách
+    // Ẩn trường description
     const feesListResult = results.map(fee => {
-      const { description, ...rest } = fee;
+      const { description, ...rest } = fee.toObject();
       return rest;
     });
 
@@ -76,7 +80,8 @@ export const createFee = async (req, res) => {
       });
     }
 
-    if (!['MONTHLY', 'YEARLY'].includes(type.toUpperCase())) {
+    const normalizedType = type.toUpperCase();
+    if (!['MONTHLY', 'YEARLY'].includes(normalizedType)) {
       return res.status(400).json({
         success: false,
         message: 'Loại khoản thu không hợp lệ (MONTHLY/YEARLY)'
@@ -86,11 +91,10 @@ export const createFee = async (req, res) => {
     const fee = new Fee({
       name,
       amount,
-      type: type.toUpperCase(),
+      type: normalizedType,
       description: description || '',
       mandatory: mandatory || false,
-      status: 'ACTIVE',
-      // createdAt, updatedAt sẽ tự động thêm
+      status: 'ACTIVE'
     });
 
     const savedFee = await fee.save();
@@ -130,7 +134,11 @@ export const updateFee = async (req, res) => {
     if (mandatory !== undefined) updatedData.mandatory = mandatory;
     if (status !== undefined) updatedData.status = status;
 
-    const updatedFee = await Fee.findByIdAndUpdate(req.params.id, updatedData, { new: true });
+    const updatedFee = await Fee.findByIdAndUpdate(
+      req.params.id,
+      updatedData,
+      { new: true }
+    );
 
     if (!updatedFee) {
       return res.status(404).json({
