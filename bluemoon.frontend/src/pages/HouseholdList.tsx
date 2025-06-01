@@ -451,6 +451,7 @@ const HouseholdList = () => {
   const [households, setHouseholds] = useState<Household[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [openHouseholdId, setOpenHouseholdId] = useState<string | null>(null);
 
   // Lấy token từ localStorage
   const getAuthToken = () => localStorage.getItem("token");
@@ -460,10 +461,13 @@ const HouseholdList = () => {
     const fetchHouseholds = async () => {
       setIsLoading(true);
       try {
+        const token = getAuthToken();
+        const headers: HeadersInit = { "Content-Type": "application/json" };
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
         const response = await fetch("http://localhost:3000/api/households", {
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
         });
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         const data = await response.json();
@@ -548,6 +552,9 @@ const HouseholdList = () => {
     }
   };
 
+  // Debugging log for openHouseholdId
+  console.log("openHouseholdId:", openHouseholdId);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -629,117 +636,132 @@ const HouseholdList = () => {
           {isLoading ? (
             <div className="text-center">Đang tải...</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Căn hộ</TableHead>
-                  <TableHead>Tầng</TableHead>
-                  <TableHead>Diện tích (m²)</TableHead>
-                  <TableHead>Chủ hộ</TableHead>
-                  <TableHead>Số điện thoại</TableHead>
-                  <TableHead>Số thành viên</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredHouseholds.map((household) => (
-                  <TableRow key={household._id}>
-                    <TableCell className="font-medium">{household.apartment || "N/A"}</TableCell>
-                    <TableCell>{household.floor ?? "N/A"}</TableCell>
-                    <TableCell>{household.area ?? "N/A"}</TableCell>
-                    <TableCell>{household.head || "N/A"}</TableCell>
-                    <TableCell>{household.phone || "N/A"}</TableCell>
-                    <TableCell>{household.members ?? 0}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" disabled={isLoading}>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <ViewHouseholdMembersDialog
-                            householdId={household._id}
-                            apartmentNumber={household.apartment || "Unknown"}
-                          >
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Căn hộ</TableHead>
+                    <TableHead>Tầng</TableHead>
+                    <TableHead>Diện tích (m²)</TableHead>
+                    <TableHead>Chủ hộ</TableHead>
+                    <TableHead>Số điện thoại</TableHead>
+                    <TableHead>Số thành viên</TableHead>
+                    <TableHead className="text-right">Thao tác</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredHouseholds.map((household) => (
+                    <TableRow key={household._id}>
+                      <TableCell className="font-medium">{household.apartment || "N/A"}</TableCell>
+                      <TableCell>{household.floor ?? "N/A"}</TableCell>
+                      <TableCell>{household.area ?? "N/A"}</TableCell>
+                      <TableCell>{household.head || "N/A"}</TableCell>
+                      <TableCell>{household.phone || "N/A"}</TableCell>
+                      <TableCell>{household.members ?? 0}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" disabled={isLoading}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                console.log(`Opening ViewHouseholdMembersDialog for householdId: ${household._id}, apartment: ${household.apartment}`);
+                                setOpenHouseholdId(household._id);
+                              }}
+                            >
                               <Eye className="mr-2 h-4 w-4" />
                               Xem thành viên
                             </DropdownMenuItem>
-                          </ViewHouseholdMembersDialog>
-                          <EditHouseholdDialog
-                            household={household}
-                            onUpdateHousehold={async (updatedHousehold) => {
-                              const token = getAuthToken();
-                              if (!token) {
-                                toast({
-                                  title: "Lỗi",
-                                  description: "Vui lòng đăng nhập để thực hiện thao tác này",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-
-                              try {
-                                setIsLoading(true);
-                                const response = await fetch(
-                                  `http://localhost:3000/api/households/${household._id}`,
-                                  {
-                                    method: "PUT",
-                                    headers: {
-                                      "Content-Type": "application/json",
-                                      Authorization: `Bearer ${token}`,
-                                    },
-                                    body: JSON.stringify(updatedHousehold),
-                                  }
-                                );
-                                if (!response.ok) {
-                                  const errorData = await response.json();
-                                  throw new Error(errorData?.message || `HTTP error! Status: ${response.status}`);
+                            <EditHouseholdDialog
+                              household={household}
+                              onUpdateHousehold={async (updatedHousehold) => {
+                                const token = getAuthToken();
+                                if (!token) {
+                                  toast({
+                                    title: "Lỗi",
+                                    description: "Vui lòng đăng nhập để thực hiện thao tác này",
+                                    variant: "destructive",
+                                  });
+                                  return;
                                 }
-                                const data = await response.json();
-                                console.log("Update household response:", data);
-                                setHouseholds(
-                                  households.map((h) =>
-                                    h._id === household._id ? data?.data : h
-                                  )
-                                );
-                                toast({
-                                  title: "Thành công",
-                                  description: `Đã cập nhật hộ khẩu ${data?.data?.apartment || "Unknown"}`,
-                                  variant: "default",
-                                });
-                              } catch (error: any) {
-                                console.error("Update household error:", error);
-                                toast({
-                                  title: "Lỗi",
-                                  description: error.message || "Không thể cập nhật hộ khẩu",
-                                  variant: "destructive",
-                                });
-                              } finally {
-                                setIsLoading(false);
-                              }
-                            }}
-                          >
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Sửa thông tin
+
+                                try {
+                                  setIsLoading(true);
+                                  const response = await fetch(
+                                    `http://localhost:3000/api/households/${household._id}`,
+                                    {
+                                      method: "PUT",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                        Authorization: `Bearer ${token}`,
+                                      },
+                                      body: JSON.stringify(updatedHousehold),
+                                    }
+                                  );
+                                  if (!response.ok) {
+                                    const errorData = await response.json();
+                                    throw new Error(errorData?.message || `HTTP error! Status: ${response.status}`);
+                                  }
+                                  const data = await response.json();
+                                  console.log("Update household response:", data);
+                                  setHouseholds(
+                                    households.map((h) =>
+                                      h._id === household._id ? data?.data : h
+                                    )
+                                  );
+                                  toast({
+                                    title: "Thành công",
+                                    description: `Đã cập nhật hộ khẩu ${data?.data?.apartment || "Unknown"}`,
+                                    variant: "default",
+                                  });
+                                } catch (error: any) {
+                                  console.error("Update household error:", error);
+                                  toast({
+                                    title: "Lỗi",
+                                    description: error.message || "Không thể cập nhật hộ khẩu",
+                                    variant: "destructive",
+                                  });
+                                } finally {
+                                  setIsLoading(false);
+                                }
+                              }}
+                            >
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Sửa thông tin
+                              </DropdownMenuItem>
+                            </EditHouseholdDialog>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDelete(household._id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Xóa hộ khẩu
                             </DropdownMenuItem>
-                          </EditHouseholdDialog>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => handleDelete(household._id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Xóa hộ khẩu
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {openHouseholdId && (
+                <ViewHouseholdMembersDialog
+                  key={`view-dialog-${openHouseholdId}`}
+                  householdId={openHouseholdId}
+                  apartmentNumber={
+                    households.find((h) => h._id === openHouseholdId)?.apartment || "Unknown"
+                  }
+                  open={!!openHouseholdId}
+                  onOpenChange={(open) => {
+                    if (!open) setOpenHouseholdId(null);
+                  }}
+                />
+              )}
+            </>
           )}
         </CardContent>
       </Card>
