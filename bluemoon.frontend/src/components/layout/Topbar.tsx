@@ -1,6 +1,7 @@
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Menu, User, LogOut } from "lucide-react";
-import { Button, Avatar, AvatarFallback } from "@/components/ui/base-components";
+import { Button, Avatar } from "@/components/ui/base-components";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,9 +19,15 @@ interface TopBarProps {
 
 export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
   const navigate = useNavigate();
+  const [fullName, setFullName] = useState<string>("");
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("fullName") || "";
+    setFullName(storedName);
+  }, []);
 
   const handleLogout = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
       toast({
         title: "Không có phiên đăng nhập",
@@ -32,10 +39,10 @@ export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/logout', {
-        method: 'POST',
+      const response = await fetch("http://localhost:3000/api/auth/logout", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
@@ -43,20 +50,24 @@ export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Đăng xuất thất bại');
+        throw new Error(data.message || "Đăng xuất thất bại");
       }
 
-      localStorage.removeItem('token');
+      localStorage.removeItem("token");
+      localStorage.removeItem("fullName");
       toast({
         title: "Đăng xuất thành công",
         description: "Bạn đã đăng xuất khỏi hệ thống BlueMoon",
       });
       navigate("/login");
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       toast({
         title: "Lỗi đăng xuất",
-        description: error instanceof Error ? error.message : "Có lỗi xảy ra khi đăng xuất",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Có lỗi xảy ra khi đăng xuất",
         variant: "destructive",
       });
     }
@@ -75,17 +86,20 @@ export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
       </Button>
 
       <div className="flex-1">
-        <h2 className="text-lg font-semibold">Quản lý chung cư BlueMoon</h2>
+        <h2 className="text-lg font-semibold">Chung cư BlueMoon</h2>
       </div>
 
       <div className="flex items-center gap-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+            <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 overflow-hidden">
               <Avatar className="h-9 w-9">
-                <AvatarFallback className="bg-bluemoon-500 text-white">
-                  BQ
-                </AvatarFallback>
+                {/* Thay AvatarFallback bằng ảnh user.png trong public */}
+                <img
+                  src="/user.png"
+                  alt="User Avatar"
+                  className="h-9 w-9 object-cover rounded-full"
+                />
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -96,7 +110,9 @@ export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
               <User className="mr-2 h-4 w-4" />
               <span>Hồ sơ</span>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/settings")}>Đổi mật khẩu</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")}>
+              Đổi mật khẩu
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />

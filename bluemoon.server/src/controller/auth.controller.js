@@ -64,13 +64,21 @@ export const login = async (req, res) => {
       { expiresIn: JWT_EXPIRES_IN }
     );
 
+    // Gửi cookie chứa token
     res.cookie('token', token, { httpOnly: true });
-    return res.json({ message: 'Đăng nhập thành công', token });
+
+    // Trả thêm role trong body
+    return res.json({
+      message: 'Đăng nhập thành công',
+      token,      // frontend không cần dùng nếu đã có httpOnly cookie
+      role: user.role, // thêm role để lưu vào localStorage
+    });
   } catch (err) {
     console.error('Login error:', err);
     return res.status(500).json({ message: 'Lỗi máy chủ' });
   }
 };
+
 
 // Đăng xuất
 export const logout = (req, res) => {

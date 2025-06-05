@@ -11,7 +11,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
+  
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -34,18 +34,20 @@ const LoginPage = () => {
         throw new Error(data.message || 'Đăng nhập thất bại');
       }
 
-      // Lưu token (nếu backend trả về token)
+      // ✅ Lưu token, username, role vào localStorage
       if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('username', data.username || username);
+        localStorage.setItem('role', data.role); // <-- Thêm dòng này
       }
 
       toast({
         title: "Đăng nhập thành công",
         description: "Chào mừng quay trở lại hệ thống quản lý BlueMoon",
       });
-      navigate("/"); // Chuyển hướng đến trang chính
-    } catch (error) {
+
+      navigate("/"); // ✅ Điều hướng sau khi đăng nhập
+    } catch (error: any) {
       console.error('Login error:', error);
       toast({
         title: "Đăng nhập thất bại",

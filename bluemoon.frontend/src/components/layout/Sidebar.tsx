@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -18,6 +19,15 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
+  const [role, setRole] = useState<string>("");
+
+  useEffect(() => {
+    const storedRole = localStorage.getItem("role") || "";
+    setRole(storedRole);
+  }, []);
+
+  const isAdmin = role === "Quản trị viên";
+
   return (
     <aside
       className={cn(
@@ -31,8 +41,12 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
           <div className="flex items-center gap-3">
             {(isOpen || window.innerWidth >= 768) && (
               <>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                  <span className="text-lg font-bold text-sidebar-primary">B</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 overflow-hidden">
+                  <img
+                    src="/luxury.png"
+                    alt="Logo"
+                    className="h-full w-full object-cover rounded-full"
+                  />
                 </div>
                 {isOpen && <h1 className="font-bold text-white">BlueMoon</h1>}
               </>
@@ -42,17 +56,26 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
 
         {/* Navigation Links */}
         <nav className="flex-1 overflow-y-auto px-2 py-4">
-          {/* Main Navigation */}
           <div className="space-y-1">
             <NavItem to="/" icon={LayoutDashboard} text="Dashboard" isOpen={isOpen} />
-            <NavItem to="/households" icon={Home} text="Quản lý hộ khẩu" isOpen={isOpen} />
-            <NavItem to="/residents" icon={Users} text="Quản lý nhân khẩu" isOpen={isOpen} />
-            <NavItem to="/fees" icon={Database} text="Quản lý khoản phí" isOpen={isOpen} />
-            <NavItem to="/payments" icon={CreditCard} text="Quản lý thu phí" isOpen={isOpen} />
-            <NavItem to="/reports" icon={BarChart} text="Thống kê" isOpen={isOpen} />
-            <NavItem to="/users" icon={UserCog} text="Quản lý người dùng" isOpen={isOpen} />
+
+            {isAdmin ? (
+              <>
+                <NavItem to="/households" icon={Home} text="Quản lý hộ khẩu" isOpen={isOpen} />
+                <NavItem to="/residents" icon={Users} text="Quản lý nhân khẩu" isOpen={isOpen} />
+                <NavItem to="/fees" icon={Database} text="Quản lý khoản phí" isOpen={isOpen} />
+                <NavItem to="/payments" icon={CreditCard} text="Quản lý thu phí" isOpen={isOpen} />
+                <NavItem to="/reports" icon={BarChart} text="Thống kê" isOpen={isOpen} />
+                <NavItem to="/users" icon={UserCog} text="Quản lý người dùng" isOpen={isOpen} />
+              </>
+            ) : (
+              <>
+                <NavItem to="/payments" icon={CreditCard} text="Khoản phí của tôi" isOpen={isOpen} />
+                <NavItem to="/profile" icon={Users} text="Thông tin cá nhân" isOpen={isOpen} />
+              </>
+            )}
           </div>
-          
+
           {/* Footer Navigation */}
           <div className="mt-6 border-t border-sidebar-border pt-6">
             <NavItem to="/settings" icon={Settings} text="Cài đặt" isOpen={isOpen} />
@@ -71,8 +94,17 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   );
 };
 
-// NavItem Component - integrated into the Sidebar file
-const NavItem = ({ to, icon: Icon, text, isOpen }: { to: string; icon: React.ElementType; text: string; isOpen: boolean }) => {
+const NavItem = ({
+  to,
+  icon: Icon,
+  text,
+  isOpen,
+}: {
+  to: string;
+  icon: React.ElementType;
+  text: string;
+  isOpen: boolean;
+}) => {
   return (
     <NavLink
       to={to}
