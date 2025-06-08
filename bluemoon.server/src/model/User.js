@@ -21,8 +21,8 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['Quản trị viên', 'Cư dân'],
-    default: 'Cư dân',
+    enum: ['Tổ trưởng', 'Kế toán'],
+    default: 'Kế toán',
   },
   status: {
     type: String,

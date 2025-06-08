@@ -19,11 +19,14 @@ interface TopBarProps {
 
 export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
   const navigate = useNavigate();
-  const [fullName, setFullName] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
+  const [role, setRole] = useState<string>("");
 
   useEffect(() => {
-    const storedName = localStorage.getItem("fullName") || "";
-    setFullName(storedName);
+    const storedUsername = localStorage.getItem("fullname") || "";
+    const storedRole = localStorage.getItem("role") || "";
+    setUsername(storedUsername);
+    setRole(storedRole);
   }, []);
 
   const handleLogout = async () => {
@@ -55,6 +58,8 @@ export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
 
       localStorage.removeItem("token");
       localStorage.removeItem("fullName");
+      localStorage.removeItem("username");
+      localStorage.removeItem("role");
       toast({
         title: "Đăng xuất thành công",
         description: "Bạn đã đăng xuất khỏi hệ thống BlueMoon",
@@ -90,11 +95,15 @@ export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Hiển thị role - username */}
+        <span className="text-sm font-medium text-muted-foreground">
+          {role && username ? `${role} - ${username}` : username}
+        </span>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 overflow-hidden">
               <Avatar className="h-9 w-9">
-                {/* Thay AvatarFallback bằng ảnh user.png trong public */}
                 <img
                   src="/user.png"
                   alt="User Avatar"
@@ -107,16 +116,7 @@ export const TopBar = ({ sidebarOpen, setSidebarOpen }: TopBarProps) => {
             <DropdownMenuLabel>Tài khoản</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate("/settings")}>
-              <User className="mr-2 h-4 w-4" />
-              <span>Hồ sơ</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/settings")}>
               Đổi mật khẩu
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Đăng xuất</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

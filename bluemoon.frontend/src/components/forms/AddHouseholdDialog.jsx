@@ -56,31 +56,61 @@ const AddHouseholdDialog = ({ children }) => {
     setMembers(updatedMembers);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simulate saving household and members
-    toast({
-      title: "Thành công",
-      description: `Đã thêm hộ khẩu ${householdData.apartmentNumber} với ${members.length} thành viên`,
-    });
-    setOpen(false);
-    // Reset form
-    setHouseholdData({
-      apartmentNumber: "",
-      floor: "",
-      area: "",
-      owner: "",
-      phoneNumber: "",
-    });
-    setMembers([{
-      name: "",
-      idNumber: "",
-      gender: "male",
-      dateOfBirth: "",
-      relation: "Chủ hộ",
-      phoneNumber: "",
-    }]);
+
+    try {
+      const response = await fetch("http://localhost:3000/api/households/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...householdData,
+          members: members,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Đã xảy ra lỗi khi thêm hộ khẩu.");
+      }
+
+      toast({
+        title: "Thành công",
+        description: `Đã thêm hộ khẩu ${householdData.apartmentNumber} với ${members.length} thành viên`,
+      });
+
+      setOpen(false);
+
+      // Reset form
+      setHouseholdData({
+        apartmentNumber: "",
+        floor: "",
+        area: "",
+        owner: "",
+        phoneNumber: "",
+      });
+
+      setMembers([
+        {
+          name: "",
+          idNumber: "",
+          gender: "male",
+          dateOfBirth: "",
+          relation: "Chủ hộ",
+          phoneNumber: "",
+        },
+      ]);
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể thêm hộ khẩu.",
+        variant: "destructive",
+      });
+    }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

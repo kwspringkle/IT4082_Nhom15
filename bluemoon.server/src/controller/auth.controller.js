@@ -7,7 +7,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '5d';
 
 // Đăng ký
 export const register = async (req, res) => {
-  const { fullname, username, email, phone, password } = req.body;
+  const { fullname, username, email, phone, password, role } = req.body;
 
   try {
     const finalEmail = email && email.trim() !== '' ? email : `${username}@bluemoon`;
@@ -28,6 +28,7 @@ export const register = async (req, res) => {
       email: finalEmail,
       phone,
       password: hashedPassword,
+      role, // thêm role vào user
     });
 
     await newUser.save();
@@ -37,6 +38,7 @@ export const register = async (req, res) => {
     return res.status(500).json({ message: 'Lỗi máy chủ' });
   }
 };
+
 
 
 // Đăng nhập
@@ -70,7 +72,8 @@ export const login = async (req, res) => {
     // Trả thêm role trong body
     return res.json({
       message: 'Đăng nhập thành công',
-      token,      // frontend không cần dùng nếu đã có httpOnly cookie
+      token,
+      fullname : user.fullname,      // frontend không cần dùng nếu đã có httpOnly cookie
       role: user.role, // thêm role để lưu vào localStorage
     });
   } catch (err) {

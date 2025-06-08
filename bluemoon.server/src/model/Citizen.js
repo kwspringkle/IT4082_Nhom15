@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { attachHistoryLogging } from '../middleware/history.middleware.js';
 
 const citizenSchema = new mongoose.Schema({
   name: {
@@ -19,13 +20,17 @@ const citizenSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  apartment: {
+  phone: {
     type: String,
-    required: true,
   },
   relation: {
     type: String,
     required: true,
+  },
+  status : {
+    type: String,
+    enum: ['Thường trú', 'Tạm vắng', 'Đã chuyển đi'],
+    default : 'Thường trú',
   },
   householdId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -35,6 +40,8 @@ const citizenSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+attachHistoryLogging(citizenSchema, 'Citizen');
 
 const Citizen = mongoose.model('Citizen', citizenSchema);
 export default Citizen;

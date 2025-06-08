@@ -1,10 +1,10 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Home,
   Users,
   Wallet,
   CircleCheck,
-  FileText,
   CreditCard,
   Settings,
   BarChart3,
@@ -12,44 +12,69 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import axios from "axios";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [role, setRole] = useState("");
+  const [stats, setStats] = useState({
+    totalHouseholds: 0,
+    totalResidents: 0,
+    monthlyRevenue: 0,
+    paymentRate: 0,
+  });
+
+  useEffect(() => {
+    const storedRole = localStorage.getItem("role") || "";
+    setRole(storedRole);
+
+    // Gọi API lấy dữ liệu dashboard
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/api/statistics/dashboard");
+        setStats(response.data);
+      } catch (error) {
+        console.error("Lỗi khi lấy số liệu thống kê:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const isLeader = role === "Tổ trưởng" || role === "Tổ phó";
+  const isAccountant = role === "Kế toán";
 
   const statCards = [
     {
-      title: "Tổng số hộ khẩu",
-      value: "243",
-      description: "hộ khẩu đang sinh sống",
+      title: "Tổng số căn hộ",
+      value: stats.totalHouseholds.toLocaleString(),
+      description: "đang có sẵn",
       icon: Home,
-      trend: "+2 so với tháng trước",
-      trendUp: true,
+      show: isLeader,
     },
     {
       title: "Tổng số nhân khẩu",
-      value: "578",
+      value: stats.totalResidents.toLocaleString(),
       description: "nhân khẩu đăng ký",
       icon: Users,
-      trend: "+5 so với tháng trước",
-      trendUp: true,
+      show: isLeader,
     },
     {
       title: "Thu phí tháng này",
-      value: "824,500,000",
+      value: stats.monthlyRevenue.toLocaleString("vi-VN") + " VND",
       description: "VND đã thu",
       icon: Wallet,
-      trend: "+12% so với tháng trước",
-      trendUp: true,
+      show: isAccountant,
     },
     {
       title: "Tỉ lệ thanh toán",
-      value: "92%",
+      value: `${Math.round(stats.paymentRate * 100)}%`,
       description: "hộ đã thanh toán",
       icon: CircleCheck,
-      trend: "+5% so với tháng trước",
-      trendUp: true,
+      show: isAccountant,
     },
   ];
+
 
   const navigationCards = [
     {
@@ -58,6 +83,7 @@ const Dashboard = () => {
       icon: Home,
       path: "/households",
       color: "bg-blue-500",
+      show: isLeader,
     },
     {
       title: "Quản lý nhân khẩu",
@@ -65,6 +91,7 @@ const Dashboard = () => {
       icon: Users,
       path: "/residents",
       color: "bg-green-500",
+      show: isLeader,
     },
     {
       title: "Quản lý thu phí",
@@ -72,6 +99,7 @@ const Dashboard = () => {
       icon: CreditCard,
       path: "/fees",
       color: "bg-purple-500",
+      show: isAccountant,
     },
     {
       title: "Thanh toán",
@@ -79,6 +107,7 @@ const Dashboard = () => {
       icon: Wallet,
       path: "/payments",
       color: "bg-orange-500",
+      show: isAccountant,
     },
     {
       title: "Báo cáo & Thống kê",
@@ -86,6 +115,7 @@ const Dashboard = () => {
       icon: BarChart3,
       path: "/reports",
       color: "bg-indigo-500",
+      show: isLeader || isAccountant,
     },
     {
       title: "Quản lý người dùng",
@@ -93,6 +123,7 @@ const Dashboard = () => {
       icon: Settings,
       path: "/users",
       color: "bg-red-500",
+      show: isLeader,
     },
   ];
 
@@ -100,15 +131,13 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Tổng quan</h1>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            Dữ liệu cập nhật: 21/05/2025
-          </span>
-        </div>
+        <span className="text-sm text-muted-foreground">
+          Dữ liệu cập nhật: {new Date().toLocaleDateString("vi-VN")}
+        </span>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card, index) => (
+        {statCards.filter(card => card.show).map((card, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
@@ -116,16 +145,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{card.value}</div>
-              <p className="text-xs text-muted-foreground">
-                {card.description}
-              </p>
-              <div
-                className={`mt-2 text-xs ${
-                  card.trendUp ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {card.trend}
-              </div>
+              <p className="text-xs text-muted-foreground">{card.description}</p>
             </CardContent>
           </Card>
         ))}
@@ -134,7 +154,7 @@ const Dashboard = () => {
       <div>
         <h2 className="text-2xl font-bold mb-4">Truy cập nhanh</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {navigationCards.map((card, index) => (
+          {navigationCards.filter(card => card.show).map((card, index) => (
             <Card key={index} className="hover:shadow-lg transition-shadow cursor-pointer group">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -147,8 +167,8 @@ const Dashboard = () => {
                 <CardDescription>{card.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={() => navigate(card.path)}
                 >

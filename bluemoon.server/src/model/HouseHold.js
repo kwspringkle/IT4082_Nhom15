@@ -1,38 +1,38 @@
 import mongoose from 'mongoose';
+import { attachHistoryLogging } from '../middleware/history.middleware.js';
 
 const householdSchema = new mongoose.Schema({
   apartment: {
     type: String,
     required: true,
+    unique: true,
   },
   floor: {
     type: Number,
-    required: true,
+    default: 1
   },
   area: {
     type: Number,
-    required: true,
+    default: 0
   },
   head: {
     type: String,
-    required: true,
+    default: "",
   },
   phone: {
     type: String,
-    required: true,
+    default: ""
   },
   members: {
     type: Number,
-    required: true,
+    default: 0,
   },
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Tham chiếu tới model User
-    required: true,
-  }
 }, {
   timestamps: true
 });
+
+// ✅ Gắn middleware ghi lại thay đổi
+attachHistoryLogging(householdSchema, 'Household');
 
 const Household = mongoose.model('Household', householdSchema);
 export default Household;

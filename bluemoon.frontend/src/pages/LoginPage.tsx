@@ -11,7 +11,6 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -38,6 +37,7 @@ const LoginPage = () => {
       if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('username', data.username || username);
+        localStorage.setItem('fullname', data.fullname);
         localStorage.setItem('role', data.role); // <-- Thêm dòng này
       }
 

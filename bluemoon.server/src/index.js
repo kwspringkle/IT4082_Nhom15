@@ -11,6 +11,8 @@ import statisticsRouter from './route/statistics.routes.js';
 import accountRouter from './route/account.routes.js';
 import cors from 'cors';
 import { connectDB } from './config/db.js';
+import cookieParser from 'cookie-parser';
+
 
 dotenv.config(); // load biến môi trường từ .env
 
@@ -18,10 +20,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: 'http://localhost:8080', // Cho phép origin của frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Các phương thức cho phép
-  allowedHeaders: ['Content-Type', 'Authorization'], // Headers cho phép
+  origin: 'http://localhost:8080',  // frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,  // <=== Thêm dòng này để cho phép gửi cookie
 }));
+
+// Thêm middleware cookie parser trước khi dùng authenticate
+app.use(cookieParser());
 
 app.use(express.json());
 
@@ -33,7 +39,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/households', householdRouter); //
 app.use('/api/citizens', citizenRouter);
 app.use('/api/search', searchRouter);
-app.use('/api/citizens', historyRouter); //
+app.use('/api/history', historyRouter); 
 app.use('/api/fees', feeRouter);// Lấy hết tất cả thông tin
 app.use('/api/payments', paymentRouter);
 app.use('/api/statistics', statisticsRouter); //

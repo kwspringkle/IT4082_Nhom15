@@ -1,14 +1,7 @@
+// pages/HouseholdList.tsx
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Card,
   CardContent,
@@ -16,487 +9,45 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
-import ViewHouseholdMembersDialog from "@/components/dialogs/ViewHouseholdMembersDialog";
+import { Search, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import ViewHouseholdMembersDialog from "@/components/dialogs/ViewHouseholdMembersDialog";
 
-// Định nghĩa interface cho Household
-interface Household {
-  _id: string;
-  apartment?: string;
-  floor?: number;
-  area?: number;
-  head?: string;
-  phone?: string;
-  members?: number;
-  userId?: string;
-}
+// Import local components and utilities
+import { Household, HouseholdFormData } from "../types/household";
+import * as householdApi from "../api/household";
+import AddHouseholdDialog from "../components/dialogs/AddHouseholdDialog";
+import HouseholdTable from "../components/HouseholdTable";
 
-// Component AddHouseholdDialog
-const AddHouseholdDialog = ({
-  onAddHousehold,
-  children,
-}: {
-  onAddHousehold: (household: {
-    apartment: string;
-    floor: number;
-    area: number;
-    head: string;
-    phone: string;
-    members: number;
-  }) => Promise<void>;
-  children: React.ReactNode;
-}) => {
-  const [open, setOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    apartment: "",
-    floor: "",
-    area: "",
-    head: "",
-    phone: "",
-    members: "",
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      !formData.apartment ||
-      !formData.floor ||
-      !formData.area ||
-      !formData.head ||
-      !formData.phone ||
-      !formData.members
-    ) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng điền đầy đủ thông tin bắt buộc",
-        variant: "destructive",
-      });
-      return;
-    }
-    const floor = parseInt(formData.floor);
-    const area = parseFloat(formData.area);
-    const members = parseInt(formData.members);
-    if (isNaN(floor) || floor <= 0) {
-      toast({
-        title: "Lỗi",
-        description: "Tầng phải là số dương",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (isNaN(area) || area <= 0) {
-      toast({
-        title: "Lỗi",
-        description: "Diện tích phải là số dương",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (isNaN(members) || members < 0) {
-      toast({
-        title: "Lỗi",
-        description: "Số thành viên phải là số không âm",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!/^[0][0-9]{9}$/.test(formData.phone)) {
-      toast({
-        title: "Lỗi",
-        description: "Số điện thoại phải là 10 số, bắt đầu bằng 0",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!/^[0-9A-Za-z-]+$/.test(formData.apartment)) {
-      toast({
-        title: "Lỗi",
-        description: "Số căn hộ chỉ chứa chữ, số hoặc dấu gạch ngang",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await onAddHousehold({
-        apartment: formData.apartment,
-        floor,
-        area,
-        head: formData.head,
-        phone: formData.phone,
-        members,
-      });
-      setOpen(false);
-      setFormData({
-        apartment: "",
-        floor: "",
-        area: "",
-        head: "",
-        phone: "",
-        members: "",
-      });
-      toast({
-        title: "Thành công",
-        description: `Đã thêm hộ khẩu ${formData.apartment}`,
-        variant: "default",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể thêm hộ khẩu",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Thêm hộ khẩu mới</DialogTitle>
-          <DialogDescription>Nhập thông tin hộ khẩu để thêm vào hệ thống.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Số căn hộ</Label>
-            <Input
-              value={formData.apartment}
-              onChange={(e) => setFormData({ ...formData, apartment: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <Label>Tầng</Label>
-            <Input
-              type="number"
-              value={formData.floor}
-              onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <Label>Diện tích (m²)</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={formData.area}
-              onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <Label>Chủ hộ</Label>
-            <Input
-              value={formData.head}
-              onChange={(e) => setFormData({ ...formData, head: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <Label>Số điện thoại</Label>
-            <Input
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <Label>Số thành viên</Label>
-            <Input
-              type="number"
-              value={formData.members}
-              onChange={(e) => setFormData({ ...formData, members: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Đang xử lý..." : "Thêm hộ khẩu"}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// Component EditHouseholdDialog
-const EditHouseholdDialog = ({
-  household,
-  onUpdateHousehold,
-  children,
-}: {
-  household: Household;
-  onUpdateHousehold: (household: {
-    apartment: string;
-    floor: number;
-    area: number;
-    head: string;
-    phone: string;
-    members: number;
-  }) => Promise<void>;
-  children: React.ReactNode;
-}) => {
-  const [open, setOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    apartment: household.apartment || "",
-    floor: household.floor?.toString() || "",
-    area: household.area?.toString() || "",
-    head: household.head || "",
-    phone: household.phone || "",
-    members: household.members?.toString() || "",
-  });
-
-  useEffect(() => {
-    setFormData({
-      apartment: household.apartment || "",
-      floor: household.floor?.toString() || "",
-      area: household.area?.toString() || "",
-      head: household.head || "",
-      phone: household.phone || "",
-      members: household.members?.toString() || "",
-    });
-  }, [household]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      !formData.apartment ||
-      !formData.floor ||
-      !formData.area ||
-      !formData.head ||
-      !formData.phone ||
-      !formData.members
-    ) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng điền đầy đủ thông tin bắt buộc",
-        variant: "destructive",
-      });
-      return;
-    }
-    const floor = parseInt(formData.floor);
-    const area = parseFloat(formData.area);
-    const members = parseInt(formData.members);
-    if (isNaN(floor) || floor <= 0) {
-      toast({
-        title: "Lỗi",
-        description: "Tầng phải là số dương",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (isNaN(area) || area <= 0) {
-      toast({
-        title: "Lỗi",
-        description: "Diện tích phải là số dương",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (isNaN(members) || members < 0) {
-      toast({
-        title: "Lỗi",
-        description: "Số thành viên phải là số không âm",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!/^[0][0-9]{9}$/.test(formData.phone)) {
-      toast({
-        title: "Lỗi",
-        description: "Số điện thoại phải là 10 số, bắt đầu bằng 0",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!/^[0-9A-Za-z-]+$/.test(formData.apartment)) {
-      toast({
-        title: "Lỗi",
-        description: "Số căn hộ chỉ chứa chữ, số hoặc dấu gạch ngang",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await onUpdateHousehold({
-        apartment: formData.apartment,
-        floor,
-        area,
-        head: formData.head,
-        phone: formData.phone,
-        members,
-      });
-      setOpen(false);
-      toast({
-        title: "Thành công",
-        description: `Đã cập nhật hộ khẩu ${formData.apartment}`,
-        variant: "default",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể cập nhật hộ khẩu",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Sửa thông tin hộ khẩu</DialogTitle>
-          <DialogDescription>Cập nhật thông tin hộ khẩu trong hệ thống.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Số căn hộ</Label>
-            <Input
-              value={formData.apartment}
-              onChange={(e) => setFormData({ ...formData, apartment: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <Label>Tầng</Label>
-            <Input
-              type="number"
-              value={formData.floor}
-              onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <Label>Diện tích (m²)</Label>
-            <Input
-              type="number"
-              step="0.1"
-              value={formData.area}
-              onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <Label>Chủ hộ</Label>
-            <Input
-              value={formData.head}
-              onChange={(e) => setFormData({ ...formData, head: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <Label>Số điện thoại</Label>
-            <Input
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div>
-            <Label>Số thành viên</Label>
-            <Input
-              type="number"
-              value={formData.members}
-              onChange={(e) => setFormData({ ...formData, members: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Đang xử lý..." : "Cập nhật hộ khẩu"}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// Main Component
 const HouseholdList = () => {
   const [households, setHouseholds] = useState<Household[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [openHouseholdId, setOpenHouseholdId] = useState<string | null>(null);
 
-  // Lấy token từ localStorage
-  const getAuthToken = () => localStorage.getItem("token");
-
-  // Fetch households
+  // Fetch households on component mount
   useEffect(() => {
-    const fetchHouseholds = async () => {
+    const loadHouseholds = async () => {
       setIsLoading(true);
       try {
-        const token = getAuthToken();
-        const headers: HeadersInit = { "Content-Type": "application/json" };
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-        const response = await fetch("http://localhost:3000/api/households", {
-          headers,
-        });
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        const data = await response.json();
-        console.log("Fetched households:", data);
-        const householdsData = Array.isArray(data) ? data : data?.data || [];
-        if (!Array.isArray(householdsData)) throw new Error("Dữ liệu hộ khẩu không hợp lệ");
-        // Validate households data
-        const validHouseholds = householdsData.filter((household: Household) => {
-          if (!household._id) {
-            console.warn("Invalid household, missing _id:", household);
-            return false;
-          }
-          return true;
-        });
-        setHouseholds(validHouseholds);
+        const householdsData = await householdApi.fetchHouseholds();
+        setHouseholds(householdsData);
       } catch (error: any) {
         console.error("Fetch households error:", error);
         toast({
           title: "Lỗi",
-          description: error.message || "Không thể tải danh sách hộ khẩu",
+          description: error.message || "Không thể tải danh sách căn hộ",
           variant: "destructive",
         });
       } finally {
         setIsLoading(false);
       }
     };
-    fetchHouseholds();
+
+    loadHouseholds();
   }, []);
 
+  // Filter households based on search term
   const filteredHouseholds = households.filter((household) => {
     const apartment = household.apartment || "";
     const head = household.head || "";
@@ -508,119 +59,107 @@ const HouseholdList = () => {
     );
   });
 
-  const handleDelete = async (householdId: string) => {
-    if (!window.confirm("Bạn có chắc muốn xóa hộ khẩu này?")) return;
-
-    const token = getAuthToken();
-    if (!token) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng đăng nhập để thực hiện thao tác này",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Handle adding new household
+  const handleAddHousehold = async (householdData: HouseholdFormData) => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:3000/api/households/${householdId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData?.message || `HTTP error! Status: ${response.status}`);
-      }
-      setHouseholds(households.filter((household) => household._id !== householdId));
+      const newHousehold = await householdApi.addHousehold(householdData);
+      setHouseholds([...households, newHousehold]);
       toast({
         title: "Thành công",
-        description: "Đã xóa hộ khẩu",
+        description: `Đã thêm căn hộ ${newHousehold.apartment || "Unknown"}`,
         variant: "default",
       });
     } catch (error: any) {
-      console.error("Delete household error:", error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể xóa hộ khẩu",
-        variant: "destructive",
-      });
+      console.error("Add household error:", error);
+      throw error; // Re-throw to let dialog handle the error
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Debugging log for openHouseholdId
-  console.log("openHouseholdId:", openHouseholdId);
+  // Handle updating household
+  const handleUpdateHousehold = async (householdId: string, householdData: HouseholdFormData) => {
+    try {
+      setIsLoading(true);
+      const updatedHousehold = await householdApi.updateHousehold(householdId, householdData);
+      setHouseholds(
+        households.map((h) => (h._id === householdId ? updatedHousehold : h))
+      );
+      toast({
+        title: "Thành công",
+        description: `Đã cập nhật căn hộ ${updatedHousehold.apartment || "Unknown"}`,
+        variant: "default",
+      });
+    } catch (error: any) {
+      console.error("Update household error:", error);
+      throw error; // Re-throw to let dialog handle the error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+// Handle deleting household — thực chất là cập nhật để reset thông tin ngoại trừ apartment, floor, area
+const handleDeleteHousehold = async (householdId: string) => {
+  try {
+    setIsLoading(true);
+
+    // Gọi API PUT /delete/:id để reset thông tin
+    await householdApi.resetHouseholdInfo(householdId);
+
+    // Cập nhật lại state: load lại hoặc update thủ công
+    setHouseholds(households.map(h =>
+      h._id === householdId
+        ? { ...h, head: "", phone: "", members: 0 }
+        : h
+    ));
+
+    toast({
+      title: "Thành công",
+      description: "Đã đặt lại thông tin căn hộ (giữ lại apartment, floor, area)",
+      variant: "default",
+    });
+  } catch (error: any) {
+    console.error("Reset household info error:", error);
+    toast({
+      title: "Lỗi",
+      description: error.message || "Không thể đặt lại thông tin căn hộ",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+
+  // Handle viewing household members
+  const handleViewMembers = (householdId: string) => {
+    console.log(`Opening ViewHouseholdMembersDialog for householdId: ${householdId}`);
+    setOpenHouseholdId(householdId);
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold mb-2">Quản lý hộ khẩu</h1>
+          <h1 className="text-2xl font-bold mb-2">Quản lý căn hộ</h1>
           <p className="text-muted-foreground">
-            Quản lý thông tin hộ khẩu trong chung cư BlueMoon
+            Quản lý thông tin căn hộ trong chung cư BlueMoon
           </p>
         </div>
-        <AddHouseholdDialog
-          onAddHousehold={async (newHousehold) => {
-            const token = getAuthToken();
-            if (!token) {
-              toast({
-                title: "Lỗi",
-                description: "Vui lòng đăng nhập để thực hiện thao tác này",
-                variant: "destructive",
-              });
-              return;
-            }
-
-            try {
-              setIsLoading(true);
-              const response = await fetch("http://localhost:3000/api/households", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(newHousehold),
-              });
-              if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData?.message || `HTTP error! Status: ${response.status}`);
-              }
-              const data = await response.json();
-              console.log("Add household response:", data);
-              setHouseholds([...households, data?.data]);
-              toast({
-                title: "Thành công",
-                description: `Đã thêm hộ khẩu ${data?.data?.apartment || "Unknown"}`,
-                variant: "default",
-              });
-            } catch (error: any) {
-              console.error("Add household error:", error);
-              toast({
-                title: "Lỗi",
-                description: error.message || "Không thể thêm hộ khẩu",
-                variant: "destructive",
-              });
-            } finally {
-              setIsLoading(false);
-            }
-          }}
-        >
+        <AddHouseholdDialog onAddHousehold={handleAddHousehold}>
           <Button className="bg-blue-500 text-white hover:bg-blue-600" disabled={isLoading}>
             <Plus className="mr-2 h-4 w-4" />
-            Thêm hộ mới
+            Thêm căn hộ mới
           </Button>
         </AddHouseholdDialog>
       </div>
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Danh sách hộ khẩu</CardTitle>
-          <CardDescription>Tổng số hộ khẩu: {households.length}</CardDescription>
+          <CardTitle>Danh sách căn hộ</CardTitle>
+          <CardDescription>Tổng số căn hộ: {households.length}</CardDescription>
           <div className="flex items-center py-2">
             <Search className="mr-2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -637,117 +176,13 @@ const HouseholdList = () => {
             <div className="text-center">Đang tải...</div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Căn hộ</TableHead>
-                    <TableHead>Tầng</TableHead>
-                    <TableHead>Diện tích (m²)</TableHead>
-                    <TableHead>Chủ hộ</TableHead>
-                    <TableHead>Số điện thoại</TableHead>
-                    <TableHead>Số thành viên</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredHouseholds.map((household) => (
-                    <TableRow key={household._id}>
-                      <TableCell className="font-medium">{household.apartment || "N/A"}</TableCell>
-                      <TableCell>{household.floor ?? "N/A"}</TableCell>
-                      <TableCell>{household.area ?? "N/A"}</TableCell>
-                      <TableCell>{household.head || "N/A"}</TableCell>
-                      <TableCell>{household.phone || "N/A"}</TableCell>
-                      <TableCell>{household.members ?? 0}</TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" disabled={isLoading}>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                console.log(`Opening ViewHouseholdMembersDialog for householdId: ${household._id}, apartment: ${household.apartment}`);
-                                setOpenHouseholdId(household._id);
-                              }}
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              Xem thành viên
-                            </DropdownMenuItem>
-                            <EditHouseholdDialog
-                              household={household}
-                              onUpdateHousehold={async (updatedHousehold) => {
-                                const token = getAuthToken();
-                                if (!token) {
-                                  toast({
-                                    title: "Lỗi",
-                                    description: "Vui lòng đăng nhập để thực hiện thao tác này",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-
-                                try {
-                                  setIsLoading(true);
-                                  const response = await fetch(
-                                    `http://localhost:3000/api/households/${household._id}`,
-                                    {
-                                      method: "PUT",
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                        Authorization: `Bearer ${token}`,
-                                      },
-                                      body: JSON.stringify(updatedHousehold),
-                                    }
-                                  );
-                                  if (!response.ok) {
-                                    const errorData = await response.json();
-                                    throw new Error(errorData?.message || `HTTP error! Status: ${response.status}`);
-                                  }
-                                  const data = await response.json();
-                                  console.log("Update household response:", data);
-                                  setHouseholds(
-                                    households.map((h) =>
-                                      h._id === household._id ? data?.data : h
-                                    )
-                                  );
-                                  toast({
-                                    title: "Thành công",
-                                    description: `Đã cập nhật hộ khẩu ${data?.data?.apartment || "Unknown"}`,
-                                    variant: "default",
-                                  });
-                                } catch (error: any) {
-                                  console.error("Update household error:", error);
-                                  toast({
-                                    title: "Lỗi",
-                                    description: error.message || "Không thể cập nhật hộ khẩu",
-                                    variant: "destructive",
-                                  });
-                                } finally {
-                                  setIsLoading(false);
-                                }
-                              }}
-                            >
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Sửa thông tin
-                              </DropdownMenuItem>
-                            </EditHouseholdDialog>
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => handleDelete(household._id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Xóa hộ khẩu
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <HouseholdTable
+                households={filteredHouseholds}
+                isLoading={isLoading}
+                onViewMembers={handleViewMembers}
+                onUpdateHousehold={handleUpdateHousehold}
+                onDeleteHousehold={handleDeleteHousehold}
+              />
               {openHouseholdId && (
                 <ViewHouseholdMembersDialog
                   key={`view-dialog-${openHouseholdId}`}
@@ -770,4 +205,3 @@ const HouseholdList = () => {
 };
 
 export default HouseholdList;
-

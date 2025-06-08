@@ -1,6 +1,6 @@
 export interface Household {
-  id: string;
-  apartmentNumber: string;
+  _id: string;
+  apartment: string;
   floor: number;
   area: number;
   numberOfMembers: number;
@@ -9,15 +9,18 @@ export interface Household {
 }
 
 export interface Resident {
-  id: string;
+  _id: string;
   name: string;
-  idNumber: string;
-  gender: 'male' | 'female' | 'other';
-  dateOfBirth: string;
+  citizenId: string;
+  gender: "male" | "female" | "other";
+  dob: string;
   phoneNumber: string;
   householdId: string;
   relation: string;
+  status: "Thường trú" | "Tạm vắng" | "Đã chuyển đi"; // phải có
 }
+
+
 
 export interface Fee {
   id: string;

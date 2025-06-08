@@ -26,7 +26,8 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
     setRole(storedRole);
   }, []);
 
-  const isAdmin = role === "Quản trị viên";
+  const isLeader = role === "Tổ trưởng" || role === "Tổ phó";
+  const isAccountant = role === "Kế toán";
 
   return (
     <aside
@@ -59,29 +60,32 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
           <div className="space-y-1">
             <NavItem to="/" icon={LayoutDashboard} text="Dashboard" isOpen={isOpen} />
 
-            {isAdmin ? (
+            {isLeader && (
               <>
-                <NavItem to="/households" icon={Home} text="Quản lý hộ khẩu" isOpen={isOpen} />
+                <NavItem to="/households" icon={Home} text="Quản lý căn hộ" isOpen={isOpen} />
                 <NavItem to="/residents" icon={Users} text="Quản lý nhân khẩu" isOpen={isOpen} />
-                <NavItem to="/fees" icon={Database} text="Quản lý khoản phí" isOpen={isOpen} />
-                <NavItem to="/payments" icon={CreditCard} text="Quản lý thu phí" isOpen={isOpen} />
-                <NavItem to="/reports" icon={BarChart} text="Thống kê" isOpen={isOpen} />
                 <NavItem to="/users" icon={UserCog} text="Quản lý người dùng" isOpen={isOpen} />
               </>
-            ) : (
+            )}
+
+            {isAccountant && (
               <>
-                <NavItem to="/payments" icon={CreditCard} text="Khoản phí của tôi" isOpen={isOpen} />
-                <NavItem to="/profile" icon={Users} text="Thông tin cá nhân" isOpen={isOpen} />
+                <NavItem to="/fees" icon={Database} text="Quản lý khoản phí" isOpen={isOpen} />
+                <NavItem to="/payments" icon={CreditCard} text="Quản lý thu phí" isOpen={isOpen} />
               </>
+            )}
+
+            {(isLeader || isAccountant) && (
+              <NavItem to="/reports" icon={BarChart} text="Thống kê" isOpen={isOpen} />
             )}
           </div>
 
           {/* Footer Navigation */}
           <div className="mt-6 border-t border-sidebar-border pt-6">
-            <NavItem to="/settings" icon={Settings} text="Cài đặt" isOpen={isOpen} />
             <NavItem to="/logout" icon={LogOut} text="Đăng xuất" isOpen={isOpen} />
           </div>
         </nav>
+
 
         {/* Version Info */}
         {isOpen && (
@@ -117,12 +121,7 @@ const NavItem = ({
         )
       }
     >
-      <Icon
-        className={cn(
-          "h-5 w-5 flex-shrink-0",
-          isOpen ? "mr-3" : "mx-auto"
-        )}
-      />
+      <Icon className={cn("h-5 w-5 flex-shrink-0", isOpen ? "mr-3" : "mx-auto")} />
       {isOpen && <span>{text}</span>}
     </NavLink>
   );

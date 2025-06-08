@@ -1,5 +1,43 @@
-import Household from '../model/Household.js';
-import Payment from '../model/Payment.js';
+import Household from "../model/Household.js";
+import Resident from "../model/Citizen.js";
+import Payment from "../model/Payment.js";
+
+// Giả sử bạn có định nghĩa tháng hiện tại
+const CURRENT_MONTH = new Date().getMonth() + 1;
+const CURRENT_YEAR = new Date().getFullYear();
+
+export const getDashBoardStatistics = async (req, res) => {
+  try {
+    const totalHouseholds = await Household.countDocuments();
+    const totalResidents = await Resident.countDocuments();
+
+    // Tính tổng số tiền thu trong tháng hiện tại
+    const payments = await Payment.find({
+      month: CURRENT_MONTH,
+      year: CURRENT_YEAR,
+    });
+
+    const monthlyRevenue = payments.reduce((total, p) => total + p.amount, 0);
+
+    // Tính tỉ lệ thanh toán: số hộ đã thanh toán / tổng số hộ
+    const paidHouseholds = await Payment.distinct("householdId", {
+      month: CURRENT_MONTH,
+      year: CURRENT_YEAR,
+    });
+    const paymentRate = totalHouseholds > 0 ? paidHouseholds.length / totalHouseholds : 0;
+
+    res.json({
+      totalHouseholds,
+      totalResidents,
+      monthlyRevenue,
+      paymentRate,
+    });
+  } catch (err) {
+    console.error("Lỗi khi lấy thống kê:", err);
+    res.status(500).json({ message: "Lỗi máy chủ" });
+  }
+};
+
 
 export const getCollectionRoundsStatistics = async (req, res) => {
   try {

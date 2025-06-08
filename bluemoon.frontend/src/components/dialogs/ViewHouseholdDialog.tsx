@@ -8,44 +8,52 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 
-const ViewResidentDialog = ({ children, resident }) => {
-  const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+interface ViewHouseholdDialogProps {
+  children: React.ReactNode;
+  household: { _id: string };
+}
+
+const ViewHouseholdDialog: React.FC<ViewHouseholdDialogProps> = ({ children, household }) => {
+  const [history, setHistory] = useState<Record<string, string[] | string>>({});
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!resident?._id) return;
-
     const fetchHistory = async () => {
+      if (!household?._id) return;
+
+      setLoading(true);
       try {
-        const res = await axios.get(`http://localhost:3000/api/history/citizen/${resident._id}`);
-        setHistory(res.data.data || []);
-      } catch (err) {
-        console.error("❌ Lỗi khi tải lịch sử nhân khẩu:", err);
+        const response = await axios.get(
+          `http://localhost:3000/api/history/household/${household._id}`
+        );
+        setHistory(response.data.data || {});
+      } catch (error) {
+        console.error("Lỗi khi tải lịch sử hộ khẩu:", error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchHistory();
-  }, [resident?._id]);
+  }, [household]);
 
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Lịch sử chỉnh sửa</DialogTitle>
+          <DialogTitle>Lịch sử chỉnh sửa hộ khẩu</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
             <p className="text-sm font-medium text-muted-foreground mb-2">
-              {resident?.name ? `Lịch sử của ${resident.name}` : "Thông tin chỉnh sửa"}
+              Thông tin chỉnh sửa
             </p>
             <div className="border rounded p-3 text-sm text-muted-foreground space-y-2">
               {loading ? (
                 <p>Đang tải...</p>
-              ) : history.length === 0 ? (
+              ) : Object.keys(history).length === 0 ? (
                 <p>Chưa có lịch sử thay đổi</p>
               ) : (
                 Object.entries(history).map(([key, value], index) => (
@@ -69,4 +77,4 @@ const ViewResidentDialog = ({ children, resident }) => {
   );
 };
 
-export default ViewResidentDialog;
+export default ViewHouseholdDialog;

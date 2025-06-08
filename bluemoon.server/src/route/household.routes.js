@@ -18,8 +18,9 @@ router.get('/:id', getHouseholdById);
 router.get('/:id/payments', getPaymentsByHousehold);
 
 // Áp dụng middleware auth
-router.post('/', authenticate, createHousehold);
+router.post('/add', authenticate, createHousehold);
 router.put('/:id', authenticate, updateHousehold);
-router.delete('/:id', authenticate, deleteHousehold);
+router.put('/delete/:id', authenticate, deleteHousehold);
+
 
 export default router;
