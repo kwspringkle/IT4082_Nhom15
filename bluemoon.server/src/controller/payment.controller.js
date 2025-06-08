@@ -8,7 +8,6 @@ export const getAllPayments = async (req, res) => {
   try {
     const { householdId, feeId, status, startDate, endDate, search } = req.query;
 
-    // Build filter object
     let filter = {};
 
     if (householdId && mongoose.Types.ObjectId.isValid(householdId)) {
@@ -20,23 +19,24 @@ export const getAllPayments = async (req, res) => {
     }
 
     if (status) {
-      filter.status = status.toUpperCase();
+      const st = status.toUpperCase();
+      if (['PAID', 'PARTIAL', 'UNPAID'].includes(st)) {
+        filter.status = st;
+      }
     }
 
     if (startDate && endDate) {
-      filter.createdAt = { 
+      filter.createdAt = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
     }
 
-    // Query payments with populate household and fee info
     let payments = await Payment.find(filter)
       .populate('householdId', 'apartment head floor')
       .populate('feeId', 'name type mandatory')
       .exec();
 
-    // If search filter is given, filter in JS
     if (search) {
       const searchLower = search.toLowerCase();
       payments = payments.filter(p => {
@@ -51,17 +51,19 @@ export const getAllPayments = async (req, res) => {
       });
     }
 
-    // Format results
     const formattedResults = payments.map(p => ({
       id: p._id,
       household: `${p.householdId?.apartment} - ${p.householdId?.head}`,
       feeName: p.feeId?.name,
       amount: p.amount,
       status: p.status,
-      note: p.note
+      paidDate: p.paidDate,
+      note: p.note,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt
     }));
 
-    const totalAmount = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+    const totalAmount = payments.reduce((sum, p) => sum + p.amount, 0);
 
     res.status(200).json({
       success: true,
@@ -70,7 +72,6 @@ export const getAllPayments = async (req, res) => {
       totalAmount,
       message: 'Lấy danh sách khoản thu thành công'
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -85,124 +86,72 @@ export const getPaymentById = async (req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, message: 'ID khoản thu không hợp lệ' });
+      return res.status(400).json({
+        success: false,
+        message: 'ID khoản thu không hợp lệ',
+      });
     }
 
-    const payment = await Payment.findById(id)
-      .populate('householdId', 'apartment head floor')
-      .populate('feeId', 'name type mandatory')
-      .exec();
+    const payment = await Payment.findById(id);
 
     if (!payment) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy khoản thu' });
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy khoản thu',
+      });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: {
-        id: payment._id,
+        householdId: payment.householdId?.toString() || '',
+        feeId: payment.feeId?.toString() || '',
         amount: payment.amount,
-        dueDate: payment.dueDate,
         status: payment.status,
         paidDate: payment.paidDate,
-        paidAmount: payment.paidAmount,
         note: payment.note,
-        householdInfo: payment.householdId,
-        feeInfo: payment.feeId
       },
-      message: 'Lấy thông tin khoản thu thành công'
+      message: 'Lấy thông tin khoản thu thành công',
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: 'Lỗi khi lấy thông tin khoản thu',
-      error: error.message
+      error: error.message,
     });
   }
 };
 
 export const createPayment = async (req, res) => {
   try {
-    const { householdId, feeId, amount, dueDate, note } = req.body;
+    const { householdId, feeId, amount, status = 'UNPAID', paidDate, note = '' } = req.body;
 
-    if (!householdId || !feeId || !amount || !dueDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'Thiếu thông tin bắt buộc'
-      });
+    // Kiểm tra bắt buộc
+    if (!householdId || !feeId || amount === undefined) {
+      return res.status(400).json({ success: false, message: "Thiếu thông tin bắt buộc" });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(householdId) || !mongoose.Types.ObjectId.isValid(feeId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'ID hộ dân hoặc khoản thu không hợp lệ'
-      });
-    }
-
-    if (amount <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Số tiền phải lớn hơn 0'
-      });
-    }
-
-    if (new Date(dueDate) < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: 'Ngày hết hạn không được trong quá khứ'
-      });
-    }
-
-    // Kiểm tra tồn tại household và fee
-    const household = await Household.findById(householdId);
-    const fee = await Fee.findById(feeId);
-
-    if (!household || !fee) {
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy hộ dân hoặc khoản thu'
-      });
-    }
-
-    // Kiểm tra trùng khoản thu chưa thanh toán cùng hộ và khoản phí
-    const existingPayment = await Payment.findOne({
-      householdId,
-      feeId,
-      status: { $ne: 'PAID' },
-      dueDate: { $gt: new Date() }
-    });
-
-    if (existingPayment) {
-      return res.status(400).json({
-        success: false,
-        message: 'Đã tồn tại khoản thu chưa thanh toán cho hộ dân này'
-      });
-    }
-
-    // Tạo payment mới
+    // Tạo bản ghi mới
     const payment = new Payment({
       householdId,
       feeId,
       amount,
-      dueDate,
-      status: 'UNPAID',
-      paidDate: null,
-      paidAmount: 0,
-      note: note || ''
+      status: status.toUpperCase(),
+      paidDate: paidDate ? new Date(paidDate) : null,
+      note
     });
 
     await payment.save();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      data: payment,
-      message: 'Tạo khoản thu mới thành công'
+      message: "Tạo khoản thu thành công",
+      data: payment
     });
-
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Lỗi khi tạo khoản thu mới',
+      message: "Lỗi khi tạo khoản thu",
       error: error.message
     });
   }
@@ -211,7 +160,7 @@ export const createPayment = async (req, res) => {
 export const updatePayment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { amount, dueDate, status, paidDate, paidAmount, note } = req.body;
+    const { amount, status, paidDate, note } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ success: false, message: 'ID khoản thu không hợp lệ' });
@@ -222,33 +171,31 @@ export const updatePayment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy khoản thu' });
     }
 
-    if (status && !['PAID', 'UNPAID', 'PARTIAL'].includes(status.toUpperCase())) {
+    if (status && !['PAID', 'PARTIAL', 'UNPAID'].includes(status.toUpperCase())) {
       return res.status(400).json({
         success: false,
         message: 'Trạng thái không hợp lệ'
       });
     }
 
-    if (status === 'PAID' && (!paidAmount || paidAmount < payment.amount)) {
+    if (amount !== undefined && (typeof amount !== 'number' || amount <= 0)) {
       return res.status(400).json({
         success: false,
-        message: 'Số tiền thanh toán không hợp lệ'
+        message: 'Số tiền phải là số dương'
       });
     }
 
-    if (status === 'PAID' && !paidDate) {
+    if ((status === 'PAID' || status === 'PARTIAL') && !paidDate) {
       return res.status(400).json({
         success: false,
-        message: 'Yêu cầu ngày thanh toán khi trạng thái là PAID'
+        message: 'Cần ngày thanh toán khi trạng thái là PAID hoặc PARTIAL'
       });
     }
 
-    payment.amount = amount || payment.amount;
-    payment.dueDate = dueDate || payment.dueDate;
+    payment.amount = amount !== undefined ? amount : payment.amount;
     payment.status = status ? status.toUpperCase() : payment.status;
-    payment.paidDate = paidDate || payment.paidDate;
-    payment.paidAmount = paidAmount !== undefined ? paidAmount : payment.paidAmount;
-    payment.note = note || payment.note;
+    payment.paidDate = paidDate ? new Date(paidDate) : payment.paidDate;
+    payment.note = note !== undefined ? note : payment.note;
     payment.updatedAt = new Date();
 
     await payment.save();
@@ -294,7 +241,6 @@ export const deletePayment = async (req, res) => {
       success: true,
       message: 'Xóa khoản thu thành công'
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,

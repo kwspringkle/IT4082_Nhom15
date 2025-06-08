@@ -15,6 +15,6 @@ router.get('/:id', getCitizenById);
 router.post('/add', createCitizen);
 router.put('/:id', updateCitizen);
 router.delete('/:id', deleteCitizen);
-// router.get('/:id/history', getCitizenHistory);
+
 
 export default router;

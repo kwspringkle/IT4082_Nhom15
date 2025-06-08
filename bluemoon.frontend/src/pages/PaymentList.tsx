@@ -1,15 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Plus } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -17,92 +7,92 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Search, MoreHorizontal, Check, Edit, Trash2, Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
-const API_BASE_URL = "http://localhost:3000/api";
+import { Payment, PaymentFormData } from "@/types/payment";
+import { fetchPayments, updatePayment, createPayment, deletePayment } from "@/api/paymentApi";
+import { fetchHouseholds } from "@/api/household";
+import { normalizePaymentData } from "@/utils/paymentUtils";
+
+import PaymentFormDialog from "@/components/dialogs/PaymentFormDialog";
+import PaymentFilters from "@/components/ui/PaymentFilters";
+import PaymentTable from "@/components/ui/PaymentTable";
+import { fetchFees } from "@/api/feeAPI";
+
+interface HouseholdOption {
+  id: string;
+  label: string;
+}
 
 const PaymentList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
   const [feeFilter, setFeeFilter] = useState("all");
-  const [payments, setPayments] = useState([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [fees, setFees] = useState<{ id: string; label: string }[]>([]);
+  const [households, setHouseholds] = useState<HouseholdOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
-  const [editFormData, setEditFormData] = useState({
-    household: "",
-    feeName: "",
-    period: "",
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [editFormData, setEditFormData] = useState<PaymentFormData>({
+    householdId: "",
+    feeId: "",
     amount: "",
-    status: "",
-    dueDate: "",
-    paidAt: "",
+    status: "PAID",
+    paidDate: "",
     note: "",
   });
-  const [newPayment, setNewPayment] = useState({
-    household: "",
-    feeName: "",
-    period: "",
+  const [newPayment, setNewPayment] = useState<PaymentFormData>({
+    householdId: "",
+    feeId: "",
     amount: "",
-    status: "unpaid",
-    dueDate: "",
-    paidAt: "",
+    status: "PAID",
+    paidDate: "",
     note: "",
   });
 
-  const currentDate = new Date();
-  const currentMonth = `${currentDate.getFullYear()}-${String(
-    currentDate.getMonth() + 1
-  ).padStart(2, "0")}`;
-  const previousMonth =
-    currentDate.getMonth() === 0
-      ? `${currentDate.getFullYear() - 1}-12`
-      : `${currentDate.getFullYear()}-${String(currentDate.getMonth()).padStart(2, "0")}`;
+  // Helper function để chuyển đổi single payment record
+  const normalizePaymentRecord = (paymentData: any) => {
+    // Tìm thông tin household
+    const household = households.find(h => h.id === paymentData.householdId);
+    const fee = fees.find(f => f.id === paymentData.feeId);
+
+    return {
+      ...paymentData,
+      household: household ? household.label : paymentData.household || "",
+      feeName: fee ? fee.label : paymentData.feeName || "",
+      amount: Number(paymentData.amount) || 0,
+    };
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const paymentsRes = await axios.get(`${API_BASE_URL}/payments`);
-        console.log("Payments response:", paymentsRes.data);
-        const paymentData = (paymentsRes.data.data || paymentsRes.data).map(payment => ({
-          ...payment,
-          amount: parseFloat(payment.amount) || 0,
-          status: payment.status ? payment.status.toUpperCase() : "UNKNOWN",
-          period: payment.period || currentMonth,
-          dueDate: payment.dueDate || null,
-          paidAt: payment.paidAt || null,
-        }));
-        console.log("Normalized payment data:", paymentData);
+
+        const paymentsRes = await fetchPayments();
+        const paymentData = normalizePaymentData(paymentsRes);
         setPayments(paymentData);
-      } catch (error) {
+
+        const householdsRes = await fetchHouseholds();
+        const householdOptions = householdsRes.map((h: any) => ({
+          id: h._id,
+          label: `${h.apartment} - ${h.head}`,
+        }));
+        setHouseholds(householdOptions);
+
+        const feesRes = await fetchFees();
+        const feeOptions = feesRes.map((f: any) => ({
+          id: f._id,
+          label: f.name,
+          amount: f.amount
+        }));
+        setFees(feeOptions);
+
+      } catch (error: any) {
         console.error("Fetch error details:", error.response?.data || error.message);
         toast({
           title: "Lỗi",
@@ -117,10 +107,6 @@ const PaymentList = () => {
   }, []);
 
   const filteredPayments = payments.filter((payment) => {
-    console.log("Processing payment:", payment);
-    const periodMatch =
-      periodFilter === "all" ||
-      (payment.period && payment.period === (periodFilter === "current" ? currentMonth : previousMonth));
     const statusMatch =
       statusFilter === "all" ||
       (payment.status && payment.status.toLowerCase() === statusFilter);
@@ -134,61 +120,31 @@ const PaymentList = () => {
       (payment.feeName &&
         payment.feeName.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    console.log("Payment filter results:", {
-      id: payment.id,
-      periodMatch,
-      statusMatch,
-      feeMatch,
-      searchMatch,
-    });
-
-    return periodMatch && statusMatch && feeMatch && searchMatch;
+    return statusMatch && feeMatch && searchMatch;
   });
 
-  console.log("Filtered payments:", filteredPayments);
-
-  const getHouseholdInfo = (household) => household || "N/A";
-  const getFeeName = (feeName) => feeName || "N/A";
-
-  const formatPeriod = (period) => {
-    if (!period) return "N/A";
-    const [year, month] = period.split("-");
-    return `Tháng ${month}/${year}`;
-  };
-
-  const getStatusBadge = (status) => {
-    if (!status) return <Badge className="bg-gray-100 text-gray-800">N/A</Badge>;
-    switch (status.toLowerCase()) {
-      case "paid":
-        return <Badge className="bg-green-100 text-green-800">Đã nộp</Badge>;
-      case "unpaid":
-        return <Badge className="bg-amber-100 text-amber-800">Chưa nộp</Badge>;
-      case "late":
-        return <Badge className="bg-red-100 text-red-800">Trễ hạn</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
-    }
-  };
-
-  const handleMarkAsPaid = async (payment) => {
+  const handleMarkAsPaid = async (payment: Payment) => {
     try {
       const updatedPayment = {
         ...payment,
-        status: "PAID",
+        status: "PAID" as const,
         paidAt: new Date().toISOString(),
       };
-      const response = await axios.put(
-        `${API_BASE_URL}/payments/${payment.id}`,
-        updatedPayment
-      );
+      const response = await updatePayment(payment.id, updatedPayment);
+      
+      // Normalize dữ liệu trả về
+      const normalizedPayment = normalizePaymentRecord(response);
+      
       setPayments((prevPayments) =>
-        prevPayments.map((p) => (p.id === payment.id ? { ...response.data, amount: parseFloat(response.data.amount) || 0 } : p))
+        prevPayments.map((p) =>
+          p.id === payment.id ? normalizedPayment : p
+        )
       );
       toast({
         title: "Thành công",
         description: "Đã đánh dấu khoản phí đã nộp",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Lỗi",
         description: `Không thể cập nhật trạng thái: ${error.response?.data?.message || error.message}`,
@@ -197,15 +153,13 @@ const PaymentList = () => {
     }
   };
 
-  const handleEdit = (payment) => {
+  const handleEdit = (payment: Payment) => {
     setSelectedPayment(payment);
     setEditFormData({
       household: payment.household || "",
       feeName: payment.feeName || "",
-      period: payment.period || "",
-      amount: payment.amount ? payment.amount.toString() : "",
+      amount: payment.amount ? payment.amount : 0,
       status: payment.status ? payment.status.toLowerCase() : "",
-      dueDate: payment.dueDate ? payment.dueDate.split("T")[0] : "",
       paidAt: payment.paidAt ? payment.paidAt.split("T")[0] : "",
       note: payment.note || "",
     });
@@ -213,26 +167,29 @@ const PaymentList = () => {
   };
 
   const handleEditSubmit = async () => {
+    if (!selectedPayment) return;
     try {
-      const updatedPayment = {
+      const updatedPaymentData = {
         ...editFormData,
-        amount: parseFloat(editFormData.amount) || 0,
-        status: editFormData.status.toUpperCase(),
-        paidAt: editFormData.paidAt || null,
+        amount: Number(editFormData.amount) || 0,
+        status: editFormData.status.toUpperCase() as "PAID" | "UNPAID" | "LATE",
+        paidAt: editFormData.paidDate || null,
       };
-      const response = await axios.put(
-        `${API_BASE_URL}/payments/${selectedPayment.id}`,
-        updatedPayment
-      );
+      const response = await updatePayment(selectedPayment.id, updatedPaymentData);
+      const updatedRecord = response.data;
+
+      // Normalize dữ liệu trả về để có thông tin household và feeName
+      const normalizedPayment = normalizePaymentRecord(updatedRecord);
+
       setPayments((prevPayments) =>
-        prevPayments.map((p) => (p.id === selectedPayment.id ? { ...response.data, amount: parseFloat(response.data.amount) || 0 } : p))
+        prevPayments.map((p) =>
+          p.id === selectedPayment.id ? normalizedPayment : p
+        )
       );
+
       setIsEditModalOpen(false);
-      toast({
-        title: "Thành công",
-        description: "Đã cập nhật khoản thu phí",
-      });
-    } catch (error) {
+      toast({ title: "Thành công", description: "Đã cập nhật khoản thu phí" });
+    } catch (error: any) {
       toast({
         title: "Lỗi",
         description: `Không thể cập nhật khoản thu: ${error.response?.data?.message || error.message}`,
@@ -241,16 +198,16 @@ const PaymentList = () => {
     }
   };
 
-  const handleDelete = async (payment) => {
+  const handleDelete = async (payment: Payment) => {
     try {
-      await axios.delete(`${API_BASE_URL}/payments/${payment.id}`);
+      await deletePayment(payment.id);
       setPayments((prevPayments) => prevPayments.filter((p) => p.id !== payment.id));
       toast({
         title: "Đã xóa",
         description: "Đã xóa khoản thu phí",
         variant: "destructive",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Lỗi",
         description: `Không thể xóa khoản thu: ${error.response?.data?.message || error.message}`,
@@ -259,51 +216,39 @@ const PaymentList = () => {
     }
   };
 
-  const handleInputChange = (e) => {
+  const handleNewPaymentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewPayment({ ...newPayment, [name]: value });
   };
 
-  const handleStatusChange = (value) => {
+  const handleNewPaymentStatusChange = (value: string) => {
     setNewPayment({ ...newPayment, status: value });
   };
 
   const handleCreatePayment = async () => {
     try {
-      const paymentData = {
-        household: newPayment.household,
-        feeName: newPayment.feeName,
-        period: newPayment.period || currentMonth,
-        amount: parseFloat(newPayment.amount) || 0,
-        status: newPayment.status.toUpperCase(),
-        dueDate: newPayment.dueDate || null,
-        paidAt: newPayment.paidAt || null,
-        note: newPayment.note || "",
-      };
+      const response = await createPayment(newPayment);
+      const newRecord = response.data;
 
-      const response = await axios.post(`${API_BASE_URL}/payments`, paymentData);
+      // Normalize dữ liệu trả về để có thông tin household và feeName
+      const normalizedPayment = normalizePaymentRecord(newRecord);
+
       setPayments((prevPayments) => [
         ...prevPayments,
-        { ...response.data, amount: parseFloat(response.data.amount) || 0 },
+        normalizedPayment,
       ]);
       setOpenCreateDialog(false);
-      toast({
-        title: "Thành công",
-        description: "Tạo khoản thu phí mới thành công",
-      });
+      toast({ title: "Thành công", description: "Tạo khoản thu phí mới thành công" });
 
-      // Reset form
       setNewPayment({
-        household: "",
-        feeName: "",
-        period: "",
-        amount: "",
-        status: "unpaid",
-        dueDate: "",
-        paidAt: "",
+        householdId: "",
+        feeId: "",
+        amount: 0,
+        status: "paid",
+        paidAt: null,
         note: "",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Lỗi",
         description: `Không thể tạo khoản thu: ${error.response?.data?.message || error.message}`,
@@ -325,126 +270,10 @@ const PaymentList = () => {
             Quản lý các khoản thu phí của các hộ gia đình
           </p>
         </div>
-        <Dialog open={openCreateDialog} onOpenChange={setOpenCreateDialog}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600">
-              <Plus className="mr-2 h-4 w-4" />
-              Tạo khoản thu phí mới
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Tạo khoản thu phí mới</DialogTitle>
-              <DialogDescription>
-                Nhập thông tin để tạo khoản thu phí mới trong hệ thống.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="household">Hộ gia đình</Label>
-                  <Input
-                    id="household"
-                    name="household"
-                    value={newPayment.household}
-                    onChange={handleInputChange}
-                    placeholder="Nhập tên hộ gia đình"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="status">Trạng thái</Label>
-                  <Select
-                    value={newPayment.status}
-                    onValueChange={handleStatusChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn trạng thái" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="paid">Đã nộp</SelectItem>
-                      <SelectItem value="unpaid">Chưa nộp</SelectItem>
-                      <SelectItem value="late">Trễ hạn</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="feeName">Khoản phí</Label>
-                <Input
-                  id="feeName"
-                  name="feeName"
-                  value={newPayment.feeName}
-                  onChange={handleInputChange}
-                  placeholder="Nhập tên khoản phí"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="period">Kỳ thu</Label>
-                  <Input
-                    id="period"
-                    name="period"
-                    type="month"
-                    value={newPayment.period}
-                    onChange={handleInputChange}
-                    placeholder="Chọn kỳ thu"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="amount">Số tiền</Label>
-                  <Input
-                    id="amount"
-                    name="amount"
-                    type="number"
-                    value={newPayment.amount}
-                    onChange={handleInputChange}
-                    placeholder="Nhập số tiền"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dueDate">Hạn nộp</Label>
-                  <Input
-                    id="dueDate"
-                    name="dueDate"
-                    type="date"
-                    value={newPayment.dueDate}
-                    onChange={handleInputChange}
-                    placeholder="Chọn hạn nộp"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="paidAt">Ngày nộp</Label>
-                  <Input
-                    id="paidAt"
-                    name="paidAt"
-                    type="date"
-                    value={newPayment.paidAt}
-                    onChange={handleInputChange}
-                    placeholder="Chọn ngày nộp"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="note">Ghi chú</Label>
-                <Input
-                  id="note"
-                  name="note"
-                  value={newPayment.note}
-                  onChange={handleInputChange}
-                  placeholder="Nhập ghi chú (nếu có)"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpenCreateDialog(false)}>
-                Hủy
-              </Button>
-              <Button onClick={handleCreatePayment}>Tạo khoản thu</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <Button className="bg-blue-600" onClick={() => setOpenCreateDialog(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Tạo khoản thu phí mới
+        </Button>
       </div>
 
       <Card>
@@ -453,259 +282,54 @@ const PaymentList = () => {
           <CardDescription>
             Quản lý việc thu phí từ các hộ gia đình
           </CardDescription>
-          <div className="flex flex-wrap gap-4 py-2">
-            <div className="flex items-center flex-1 min-w-[280px]">
-              <Search className="mr-2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm kiếm theo căn hộ, chủ hộ, khoản phí..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <div className="w-[160px]">
-                <Select value={periodFilter} onValueChange={setPeriodFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Kỳ thu" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả kỳ</SelectItem>
-                    <SelectItem value="current">Tháng hiện tại</SelectItem>
-                    <SelectItem value="previous">Tháng trước</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="w-[160px]">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Trạng thái" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả</SelectItem>
-                    <SelectItem value="paid">Đã nộp</SelectItem>
-                    <SelectItem value="unpaid">Chưa nộp</SelectItem>
-                    <SelectItem value="late">Trễ hạn</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="w-[180px]">
-                <Select value={feeFilter} onValueChange={setFeeFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Loại phí" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả phí</SelectItem>
-                    {[...new Set(payments.map(p => p.feeName))].map(feeName => (
-                      <SelectItem key={feeName} value={feeName}>
-                        {feeName || "N/A"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+          <PaymentFilters
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            periodFilter={periodFilter}
+            setPeriodFilter={setPeriodFilter}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            feeFilter={feeFilter}
+            setFeeFilter={setFeeFilter}
+            allFeeNames={[...new Set(payments.map((p) => p.feeName).filter(name => name !== null && name !== undefined && name !== ""))]}
+          />
         </CardHeader>
         <CardContent>
-          {filteredPayments.length === 0 && (
-            <div className="text-center text-gray-500 py-4">
-              Không có dữ liệu phù hợp với bộ lọc.
-            </div>
-          )}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Hộ gia đình</TableHead>
-                <TableHead>Khoản phí</TableHead>
-                <TableHead>Kỳ thu</TableHead>
-                <TableHead>Số tiền</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Ngày nộp</TableHead>
-                <TableHead>Hạn nộp</TableHead>
-                <TableHead>Ghi chú</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPayments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell className="font-medium">
-                    {getHouseholdInfo(payment.household)}
-                  </TableCell>
-                  <TableCell>{getFeeName(payment.feeName)}</TableCell>
-                  <TableCell>{formatPeriod(payment.period)}</TableCell>
-                  <TableCell>
-                    {payment.amount
-                      ? new Intl.NumberFormat("vi-VN").format(payment.amount) + " VND"
-                      : "N/A"}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                  <TableCell>
-                    {payment.paidAt
-                      ? new Date(payment.paidAt).toLocaleDateString("vi-VN")
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {payment.dueDate
-                      ? new Date(payment.dueDate).toLocaleDateString("vi-VN")
-                      : "-"}
-                  </TableCell>
-                  <TableCell>{payment.note || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {payment.status.toLowerCase() === "unpaid" && (
-                          <DropdownMenuItem onClick={() => handleMarkAsPaid(payment)}>
-                            <Check className="mr-2 h-4 w-4" />
-                            Đánh dấu đã nộp
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => handleEdit(payment)}>
-                          <Edit className="mr-2 h-4 w-4" />
-                          Sửa
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => handleDelete(payment)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Xóa
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <PaymentTable
+            payments={filteredPayments}
+            onMarkAsPaid={handleMarkAsPaid}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         </CardContent>
       </Card>
 
-      {/* Edit Payment Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Chỉnh sửa khoản thu phí</DialogTitle>
-            <DialogDescription>
-              Cập nhật thông tin khoản thu phí cho hộ gia đình.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-household">Hộ gia đình</Label>
-                <Input
-                  id="edit-household"
-                  value={editFormData.household}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, household: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-status">Trạng thái</Label>
-                <Select
-                  value={editFormData.status}
-                  onValueChange={(value) =>
-                    setEditFormData({ ...editFormData, status: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn trạng thái" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="paid">Đã nộp</SelectItem>
-                    <SelectItem value="unpaid">Chưa nộp</SelectItem>
-                    <SelectItem value="late">Trễ hạn</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-feeName">Khoản phí</Label>
-              <Input
-                id="edit-feeName"
-                value={editFormData.feeName}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, feeName: e.target.value })
-                }
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-period">Kỳ thu</Label>
-                <Input
-                  id="edit-period"
-                  type="month"
-                  value={editFormData.period}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, period: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-amount">Số tiền</Label>
-                <Input
-                  id="edit-amount"
-                  type="number"
-                  value={editFormData.amount}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, amount: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-dueDate">Hạn nộp</Label>
-                <Input
-                  id="edit-dueDate"
-                  type="date"
-                  value={editFormData.dueDate}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, dueDate: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-paidAt">Ngày nộp</Label>
-                <Input
-                  id="edit-paidAt"
-                  type="date"
-                  value={editFormData.paidAt}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, paidAt: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-note">Ghi chú</Label>
-              <Input
-                id="edit-note"
-                value={editFormData.note}
-                onChange={(e) =>
-                  setEditFormData({ ...editFormData, note: e.target.value })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleEditSubmit}>Lưu thay đổi</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PaymentFormDialog
+        isOpen={openCreateDialog}
+        onOpenChange={setOpenCreateDialog}
+        formData={newPayment}
+        onInputChange={handleNewPaymentInputChange}
+        onStatusChange={handleNewPaymentStatusChange}
+        onSubmit={handleCreatePayment}
+        title="Tạo khoản thu phí mới"
+        description="Nhập thông tin để tạo khoản thu phí mới trong hệ thống."
+        households={households}
+        fees={fees.map(f => ({ id: f.id, name: f.label }))}
+      />
+
+      <PaymentFormDialog
+        isOpen={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        formData={editFormData}
+        onInputChange={(e) => setEditFormData({ ...editFormData, [e.target.name]: e.target.value })}
+        onStatusChange={(value) => setEditFormData({ ...editFormData, status: value })}
+        onSubmit={handleEditSubmit}
+        title="Chỉnh sửa khoản thu phí"
+        description="Cập nhật thông tin khoản thu phí cho hộ gia đình."
+        isEditMode={true}
+        households={households}
+        fees={fees.map(f => ({ id: f.id, name: f.label }))}
+      />
     </div>
   );
 };

@@ -1,15 +1,18 @@
-// Định nghĩa interface cho Fee
+export type FeeType = "MONTHLY" | "YEARLY";
+export type FeeStatus = "ACTIVE" | "INACTIVE";
+
 export interface Fee {
   _id: string;
   name: string;
-  type: string;
-  amount?: number;
-  ratePerSqm?: number;
-  deadline?: string;
-  mandatory: boolean;
+  amount: number;
+  type: FeeType;
   description?: string;
-  status: "ACTIVE" | "INACTIVE";
+  mandatory: boolean;
+  status: FeeStatus;
+  createdAt: string;
+  updatedAt: string;
 }
+
 
 // Định nghĩa interface cho props của AddFeeDialog
 export interface AddFeeDialogProps {

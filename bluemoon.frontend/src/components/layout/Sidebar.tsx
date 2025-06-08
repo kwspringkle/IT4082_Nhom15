@@ -76,7 +76,7 @@ export const Sidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
             )}
 
             {(isLeader || isAccountant) && (
-              <NavItem to="/reports" icon={BarChart} text="Thống kê" isOpen={isOpen} />
+              <NavItem to="/reports" icon={BarChart} text="Thống kê chi phí" isOpen={isOpen} />
             )}
           </div>
 

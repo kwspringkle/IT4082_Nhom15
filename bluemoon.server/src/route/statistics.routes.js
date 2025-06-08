@@ -1,5 +1,5 @@
 import express from 'express';
-import { getCollectionRoundsStatistics, getPaymentStatusStatistics, getDashBoardStatistics } from '../controller/statistics.controller.js';
+import { getCollectionRoundsStatistics, getPaymentStatusStatistics, getDashBoardStatistics , getReport} from '../controller/statistics.controller.js';
 
 const router = express.Router();
 
@@ -13,5 +13,8 @@ router.get('/collection-rounds', getCollectionRoundsStatistics);
 
 // GET /api/statistics/payment-status
 router.get('/payment-status', getPaymentStatusStatistics);
+
+router.get('/report', getReport);
+
 
 export default router;
