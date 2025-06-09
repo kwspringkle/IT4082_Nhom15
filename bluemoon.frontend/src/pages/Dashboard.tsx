@@ -78,7 +78,7 @@ const Dashboard = () => {
 
   const navigationCards = [
     {
-      title: "Quản lý hộ khẩu",
+      title: "Quản lý căn hộ",
       description: "Xem và quản lý thông tin các hộ khẩu",
       icon: Home,
       path: "/households",
