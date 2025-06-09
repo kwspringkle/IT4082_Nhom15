@@ -32,3 +32,14 @@ Sau khi clone xong, trong thư mục dự án sẽ có 2 thư mục chính:
 - bluemoon.frontend — chứa mã nguồn giao diện người dùng (React + Vite)
 - backend — chứa mã nguồn server (Express.js)
 </pre>
+
+## Tài khoản đăng nhập thử nghiệm
+
+Bạn có thể sử dụng các tài khoản sau để đăng nhập và trải nghiệm hệ thống:
+
+| Vai trò        | Tên đăng nhập | Mật khẩu |
+|----------------|----------------|----------|
+| Quản trị viên  | `admin`        | `123456` |
+| Kế toán        | `ketoan`       | `123456` |
+
+> ⚠️ **Lưu ý:** Tài khoản test chỉ dùng để thử nghiệm tính năng, vui lòng không thay đổi mật khẩu hoặc xóa dữ liệu hệ thống nếu không cần thiết.
