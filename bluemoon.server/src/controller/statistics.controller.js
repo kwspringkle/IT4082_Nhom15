@@ -130,65 +130,95 @@ export const getPaymentStatusStatistics = async (req, res) => {
   }
 };
 
-
 export const getReport = async (req, res) => {
   try {
-    // 1. Lấy danh sách hộ dân hợp lệ
-    const households = await Household.find({ head: { $ne: "" } });
-    const householdIds = households.map(h => h._id.toString());
+    // Lấy tất cả bản ghi Payment và populate thông tin liên quan
+    const payments = await Payment.find()
+      .populate('feeId', 'name type')
+      .lean();
 
-    // 2. Lấy danh sách các khoản phí đang hoạt động
-    const fees = await Fee.find({ status: "ACTIVE" });
+    // Lấy tổng số hộ gia đình
+    const totalHouseholds = await Household.countDocuments({ head: { $ne: '' } });
 
-    // 3. Lấy tất cả các khoản thanh toán
-    const payments = await Payment.find();
+    // Khởi tạo các biến tổng quan
+    let totalPaid = 0;
+    let unpaidAmount = 0;
+    let totalExpected = 0;
 
-    // 4. Tính tổng số tiền đã thu
-    const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
-
-    // 5. Chuẩn bị thống kê cho từng loại phí
-    const feeStats = fees.map(fee => {
-      const feeIdStr = fee._id.toString();
-
-      const feePayments = payments.filter(p => p.feeId.toString() === feeIdStr);
-      const paidHouseholdIds = new Set(feePayments.map(p => p.householdId.toString()));
-
-      const unpaidCount = householdIds.filter(id => !paidHouseholdIds.has(id)).length;
-      const paidAmount = feePayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-      const unpaidAmount = unpaidCount * fee.amount;
-      const expected = households.length * fee.amount;
-
-      const rate = expected > 0 ? Math.round((paidAmount / expected) * 100) : 0;
-
-      return {
-        name: fee.name,
-        count: households.length,
-        paid: paidAmount,
-        unpaid: unpaidAmount,
-        expected,
-        rate,
-      };
+    // Tính toán tổng quan
+    payments.forEach(payment => {
+      totalExpected += payment.amount || 0;
+      if (payment.status === 'PAID') {
+        totalPaid += payment.amount || 0;
+      } else if (payment.status === 'UNPAID') {
+        unpaidAmount += payment.amount || 0;
+      } else if (payment.status === 'PARTIAL') {
+        unpaidAmount += payment.amount || 0; 
+      }
     });
 
-    // 6. Tính tổng chưa thu
-    const totalUnpaid = feeStats.reduce((sum, stat) => sum + stat.unpaid, 0);
+    // Tính tỷ lệ thu phí
+    const paymentRate = totalExpected > 0 ? (totalPaid / totalExpected) * 100 : 0;
 
-    // 7. Tổng dự kiến và tỷ lệ thu
-    const totalExpected = totalPaid + totalUnpaid;
-    const paymentRate = totalExpected > 0 ? Math.round((totalPaid / totalExpected) * 100) : 0;
+    // Tính thống kê theo loại phí
+    const feeStatsMap = new Map();
 
-    // 8. Trả về kết quả
-    res.status(200).json({
-      totalExpected,
+    for (const payment of payments) {
+      const feeId = payment.feeId?._id?.toString();
+      const feeName = payment.feeId?.name || 'Không xác định';
+
+      if (!feeId) continue;
+
+      if (!feeStatsMap.has(feeId)) {
+        feeStatsMap.set(feeId, {
+          name: feeName,
+          count: 0,
+          paid: 0,
+          unpaid: 0,
+          expected: 0,
+          rate: 0,
+        });
+      }
+
+      const stats = feeStatsMap.get(feeId);
+      stats.count += 1;
+      stats.expected += payment.amount || 0;
+
+      if (payment.status === 'PAID') {
+        stats.paid += payment.amount || 0;
+      } else if (payment.status === 'UNPAID') {
+        stats.unpaid += payment.amount || 0;
+      } else if (payment.status === 'PARTIAL') {
+        stats.unpaid += payment.amount || 0; 
+      }
+    }
+
+    // Tính tỷ lệ thu cho từng loại phí
+    const feeStats = Array.from(feeStatsMap.values()).map(stats => ({
+      ...stats,
+      rate: stats.expected > 0 ? (stats.paid / stats.expected) * 100 : 0,
+    }));
+
+    // Chuẩn bị dữ liệu phản hồi
+    const reportData = {
+      paymentRate: Math.round(paymentRate * 100) / 100, // Làm tròn 2 chữ số
       totalPaid,
-      unpaidAmount: totalUnpaid,
-      paymentRate,
-      totalHouseholds: householdIds.length,
+      unpaidAmount,
+      totalExpected,
+      totalHouseholds,
       feeStats,
-    });
+    };
 
+    res.status(200).json({
+      success: true,
+      data: reportData,
+      message: 'Lấy báo cáo thống kê thành công',
+    });
   } catch (error) {
-    console.error("Lỗi khi tạo báo cáo:", error);
-    res.status(500).json({ message: "Lỗi máy chủ" });
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy báo cáo thống kê',
+      error: error.message,
+    });
   }
 };

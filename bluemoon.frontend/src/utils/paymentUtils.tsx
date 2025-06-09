@@ -21,10 +21,10 @@ export const getStatusBadge = (status: string | undefined): JSX.Element => {
   switch (status.toLowerCase()) {
     case "paid":
       return <Badge className="bg-green-100 text-green-800">Đã nộp</Badge>;
+    case "partial":
+      return <Badge className="bg-amber-100 text-amber-800">Đã nộp 1 phần</Badge>;
     case "unpaid":
-      return <Badge className="bg-amber-100 text-amber-800">Chưa nộp</Badge>;
-    case "late":
-      return <Badge className="bg-red-100 text-red-800">Trễ hạn</Badge>;
+      return <Badge className="bg-red-100 text-red-800">Chưa nộp</Badge>;
     default:
       return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
   }

@@ -1,16 +1,19 @@
-export type FeeType = "MONTHLY" | "YEARLY";
+export type FeeType = "MONTHLY" | "YEARLY"|"OTHER";
 export type FeeStatus = "ACTIVE" | "INACTIVE";
 
 export interface Fee {
   _id: string;
   name: string;
-  amount: number;
+  amount?: number;
+  ratePerSqm?: number;
   type: FeeType;
   description?: string;
   mandatory: boolean;
   status: FeeStatus;
+  deadline?: string | null;
   createdAt: string;
   updatedAt: string;
+
 }
 
 

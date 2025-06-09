@@ -4,6 +4,8 @@ export const getFeeTypeLabel = (type: string): string => {
       return "Phí hàng tháng";
     case "YEARLY":
       return "Phí hàng năm";
+    case "OTHER":
+      return "Phí khác";
     default:
       return type;
   }

@@ -57,7 +57,7 @@ const ReportPage = () => {
         const res = await axios.get("http://localhost:3000/api/statistics/report");
         
         // Kiểm tra và validate dữ liệu trước khi set state
-        const data = res.data;
+        const data = res.data.data; // Sửa từ res.data thành res.data.data để khớp với cấu trúc API
         if (!data) {
           throw new Error("Không có dữ liệu từ API");
         }
@@ -66,7 +66,7 @@ const ReportPage = () => {
         const validatedData: ReportData = {
           paymentRate: data.paymentRate || 0,
           totalPaid: data.totalPaid || 0,
-          unpaidAmount: data.unpaidAmount || 0, // Đổi từ totalUnpaid sang unpaidAmount
+          unpaidAmount: data.unpaidAmount || 0,
           totalExpected: data.totalExpected || 0,
           totalHouseholds: data.totalHouseholds || 0,
           feeStats: Array.isArray(data.feeStats) ? data.feeStats.map((fee: any) => ({
@@ -76,7 +76,7 @@ const ReportPage = () => {
             unpaid: fee.unpaid || 0,
             expected: fee.expected || 0,
             rate: fee.rate || 0
-          })) : [] // Sẽ là mảng rỗng vì API hiện tại không có feeStats
+          })) : []
         };
         
         setReport(validatedData);

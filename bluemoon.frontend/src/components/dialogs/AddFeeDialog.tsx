@@ -22,21 +22,21 @@ import { AddFeeDialogProps, Fee } from "@/types/fee";
 
 const AddFeeDialog: React.FC<AddFeeDialogProps> = ({ onAddFee, children }) => {
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Partial<Fee>>({
     name: "",
     type: "MONTHLY",
-    amount: "",
-    ratePerSqm: "",
-    deadline: "",
+    amount: undefined,
+    ratePerSqm: undefined,
+    deadline: undefined,
     mandatory: false,
     description: "",
-    status: "ACTIVE" as "ACTIVE" | "INACTIVE",
+    status: "ACTIVE",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Kiểm tra dữ liệu trước khi gửi
+
+    // Validation
     if (!formData.name) {
       toast({
         title: "Lỗi",
@@ -45,15 +45,31 @@ const AddFeeDialog: React.FC<AddFeeDialogProps> = ({ onAddFee, children }) => {
       });
       return;
     }
-    if (formData.amount && Number(formData.amount) < 0) {
+    if (!formData.type) {
       toast({
         title: "Lỗi",
-        description: "Đơn giá không được âm",
+        description: "Loại phí là bắt buộc",
         variant: "destructive",
       });
       return;
     }
-    if (formData.ratePerSqm && Number(formData.ratePerSqm) < 0) {
+    if (!formData.amount && !formData.ratePerSqm) {
+      toast({
+        title: "Lỗi",
+        description: "Phải cung cấp ít nhất một trong hai: số tiền cố định hoặc đơn giá theo m²",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (formData.amount && formData.amount < 0) {
+      toast({
+        title: "Lỗi",
+        description: "Số tiền cố định không được âm",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (formData.ratePerSqm && formData.ratePerSqm < 0) {
       toast({
         title: "Lỗi",
         description: "Đơn giá theo m² không được âm",
@@ -61,22 +77,30 @@ const AddFeeDialog: React.FC<AddFeeDialogProps> = ({ onAddFee, children }) => {
       });
       return;
     }
+    if (formData.deadline && isNaN(new Date(formData.deadline).getTime())) {
+      toast({
+        title: "Lỗi",
+        description: "Hạn nộp không hợp lệ",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
-      console.log("Adding new fee:", formData);
       await onAddFee({
         ...formData,
-        amount: formData.amount ? Number(formData.amount) : undefined,
-        ratePerSqm: formData.ratePerSqm ? Number(formData.ratePerSqm) : undefined,
-        deadline: formData.deadline || undefined,
+        amount: formData.amount !== undefined ? Number(formData.amount) : undefined,
+        ratePerSqm: formData.ratePerSqm !== undefined ? Number(formData.ratePerSqm) : undefined,
+        deadline: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
+        type: formData.type?.toUpperCase() as "MONTHLY" | "YEARLY" | "OTHER",
       });
       setOpen(false);
       setFormData({
         name: "",
         type: "MONTHLY",
-        amount: "",
-        ratePerSqm: "",
-        deadline: "",
+        amount: undefined,
+        ratePerSqm: undefined,
+        deadline: undefined,
         mandatory: false,
         description: "",
         status: "ACTIVE",
@@ -100,16 +124,17 @@ const AddFeeDialog: React.FC<AddFeeDialogProps> = ({ onAddFee, children }) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Tên khoản phí</Label>
+            <Label htmlFor="name">Tên khoản phí</Label>
             <Input
+              id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
           </div>
           <div>
-            <Label>Loại phí</Label>
-            <Select
+            <Label htmlFor="type">Loại phí</Label>
+             <Select
               value={formData.type}
               onValueChange={(value) => setFormData({ ...formData, type: value })}
             >
@@ -119,42 +144,66 @@ const AddFeeDialog: React.FC<AddFeeDialogProps> = ({ onAddFee, children }) => {
               <SelectContent>
                 <SelectItem value="MONTHLY">Phí hàng tháng</SelectItem>
                 <SelectItem value="YEARLY">Phí hàng năm</SelectItem>
+                <SelectItem value="OTHER">Khác</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label>Đơn giá (VND)</Label>
+            <Label htmlFor="amount">Số tiền cố định (VND)</Label>
             <Input
+              id="amount"
               type="number"
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              value={formData.amount ?? ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  amount: e.target.value ? Number(e.target.value) : undefined,
+                })
+              }
+              min="0"
             />
           </div>
           <div>
-            <Label>Đơn giá theo m² (VND/m²)</Label>
+            <Label htmlFor="ratePerSqm">Đơn giá theo m² (VND/m²)</Label>
             <Input
+              id="ratePerSqm"
               type="number"
-              value={formData.ratePerSqm}
-              onChange={(e) => setFormData({ ...formData, ratePerSqm: e.target.value })}
+              value={formData.ratePerSqm ?? ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  ratePerSqm: e.target.value ? Number(e.target.value) : undefined,
+                })
+              }
+              min="0"
             />
           </div>
           <div>
-            <Label>Deadline</Label>
+            <Label htmlFor="deadline">Hạn nộp</Label>
             <Input
+              id="deadline"
               type="date"
-              value={formData.deadline}
-              onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+              value={formData.deadline ? new Date(formData.deadline).toISOString().split("T")[0] : ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  deadline: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                })
+              }
             />
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox
+              id="mandatory"
               checked={formData.mandatory}
-              onCheckedChange={(checked) => setFormData({ ...formData, mandatory: checked as boolean })}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, mandatory: !!checked })
+              }
             />
-            <Label>Bắt buộc</Label>
+            <Label htmlFor="mandatory">Bắt buộc</Label>
           </div>
           <div>
-            <Label>Trạng thái</Label>
+            <Label htmlFor="status">Trạng thái</Label>
             <Select
               value={formData.status}
               onValueChange={(value) => setFormData({ ...formData, status: value as "ACTIVE" | "INACTIVE" })}
@@ -169,8 +218,9 @@ const AddFeeDialog: React.FC<AddFeeDialogProps> = ({ onAddFee, children }) => {
             </Select>
           </div>
           <div>
-            <Label>Mô tả</Label>
+            <Label htmlFor="description">Mô tả</Label>
             <Input
+              id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />

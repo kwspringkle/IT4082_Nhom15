@@ -7,12 +7,26 @@ const feeSchema = new mongoose.Schema({
   },
   amount: {
     type: Number,
-    required: true,
+    required: function () {
+      return !this.ratePerSqm; //Bắt buộc nếu như không có phí theo mét vuông
+    },
+    min: [0, 'Số tiền cố định không được âm'],
   },
+  ratePerSqm: {
+    type: Number,
+    required: function () {
+      return !this.amount; //Bắt buộc nếu như không có phí chung
+    },
+    min: [0, 'Đơn giá theo m² không được âm'],
+  },
+
   type: {
     type: String,
-    enum: ['MONTHLY', 'YEARLY'],
+    enum: ['MONTHLY', 'YEARLY', 'OTHER'], //Thêm other cho các khoản phí k lặp lại
     required: true,
+  },
+  deadline:{
+    type: Date
   },
   description: {
     type: String,

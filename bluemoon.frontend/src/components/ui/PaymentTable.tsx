@@ -24,14 +24,14 @@ import {
 
 interface PaymentTableProps {
   payments: Payment[];
-  onMarkAsPaid: (payment: Payment) => void;
+  //onMarkAsPaid: (payment: Payment) => void;
   onEdit: (payment: Payment) => void;
   onDelete: (payment: Payment) => void;
 }
 
 const PaymentTable: React.FC<PaymentTableProps> = ({
   payments,
-  onMarkAsPaid,
+  //onMarkAsPaid,
   onEdit,
   onDelete,
 }) => {
@@ -81,12 +81,7 @@ const PaymentTable: React.FC<PaymentTableProps> = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    {payment.status?.toLowerCase() === "unpaid" && (
-                      <DropdownMenuItem onClick={() => onMarkAsPaid(payment)}>
-                        <Check className="mr-2 h-4 w-4" />
-                        Đánh dấu đã nộp
-                      </DropdownMenuItem>
-                    )}
+                    {payment.status?.toLowerCase() === "unpaid"}
                     <DropdownMenuItem onClick={() => onEdit(payment)}>
                       <Edit className="mr-2 h-4 w-4" />
                       Sửa
