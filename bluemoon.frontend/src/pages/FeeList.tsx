@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,48 +37,49 @@ const FeeList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/fees")
-      .then((res) => {
+    const fetchFees = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/fees");
         if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        console.log("Fetched fees:", data);
-        setFees(data.data || []);
-      })
-      .catch((error) => {
+        const data = await res.json();
+        if (!data.success || !Array.isArray(data.data)) {
+          throw new Error("Invalid response format");
+        }
+        setFees(data.data);
+      } catch (error: any) {
         console.error("Fetch fees error:", error);
         toast({
           title: "Lỗi",
           description: error.message || "Không thể tải danh sách khoản phí",
           variant: "destructive",
         });
-      });
+      }
+    };
+
+    fetchFees();
   }, []);
 
-  const filteredFees = fees.filter(
-    (fee) =>
-      fee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (fee.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-      fee.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredFees = useMemo(() => {
+    return fees.filter((fee) =>
+      (
+        fee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (fee.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+        fee.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (fee.ratePerSqm?.toString().includes(searchTerm.toLowerCase()) ?? false) ||
+        (fee.deadline && format(new Date(fee.deadline), "dd/MM/yyyy").includes(searchTerm.toLowerCase()))
+      )
+    );
+  }, [fees, searchTerm]);
 
   const handleDelete = async (feeId: string) => {
     if (!window.confirm("Bạn có chắc muốn xóa khoản phí này?")) return;
     try {
-      console.log("Deleting fee with ID:", feeId);
       const res = await fetch(`http://localhost:3000/api/fees/${feeId}`, {
         method: "DELETE",
       });
       if (!res.ok) {
-        let errorMessage = `HTTP error! Status: ${res.status}`;
-        try {
-          const errorData = await res.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (jsonError) {
-          console.error("Failed to parse error response:", jsonError);
-        }
-        throw new Error(errorMessage);
+        const errorData = await res.json();
+        throw new Error(errorData.message || `HTTP error! Status: ${res.status}`);
       }
       setFees(fees.filter((fee) => fee._id !== feeId));
       toast({
@@ -97,18 +98,23 @@ const FeeList: React.FC = () => {
 
   const handleAddFee = async (newFee: Partial<Fee>) => {
     try {
-      console.log("Adding new fee:", newFee);
       const res = await fetch("http://localhost:3000/api/fees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newFee),
+        body: JSON.stringify({
+          ...newFee,
+          type: newFee.type?.toUpperCase(),
+          deadline: newFee.deadline ? new Date(newFee.deadline).toISOString() : null,
+        }),
       });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || `HTTP error! Status: ${res.status}`);
       }
       const data = await res.json();
-      console.log("Add fee response:", data);
+      if (!data.success || !data.data) {
+        throw new Error("Invalid response format");
+      }
       setFees([...fees, data.data]);
       toast({
         title: "Thành công",
@@ -126,18 +132,23 @@ const FeeList: React.FC = () => {
 
   const handleUpdateFee = async (fee: Fee, updatedFee: Partial<Fee>) => {
     try {
-      console.log("Updating fee:", updatedFee);
       const res = await fetch(`http://localhost:3000/api/fees/${fee._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedFee),
+        body: JSON.stringify({
+          ...updatedFee,
+          type: updatedFee.type?.toUpperCase(),
+          deadline: updatedFee.deadline ? new Date(updatedFee.deadline).toISOString() : null,
+        }),
       });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || `HTTP error! Status: ${res.status}`);
       }
       const data = await res.json();
-      console.log("Update fee response:", data);
+      if (!data.success || !data.data) {
+        throw new Error("Invalid response format");
+      }
       setFees(fees.map((f) => (f._id === fee._id ? data.data : f)));
       toast({
         title: "Thành công",
@@ -177,7 +188,7 @@ const FeeList: React.FC = () => {
           <div className="flex items-center py-2">
             <Search className="mr-2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Tìm kiếm theo tên, mô tả, loại phí..."
+              placeholder="Tìm kiếm theo tên, mô tả, loại phí, đơn giá, deadline..."
               className="flex-1"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

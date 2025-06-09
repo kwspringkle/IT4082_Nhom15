@@ -194,7 +194,7 @@ export const updatePayment = async (req, res) => {
 
     payment.amount = amount !== undefined ? amount : payment.amount;
     payment.status = status ? status.toUpperCase() : payment.status;
-    payment.paidDate = paidDate ? new Date(paidDate) : payment.paidDate;
+    payment.paidDate =status && status.toUpperCase() === 'UNPAID' ? null : (paidDate ? new Date(paidDate) : payment.paidDate); 
     payment.note = note !== undefined ? note : payment.note;
     payment.updatedAt = new Date();
 

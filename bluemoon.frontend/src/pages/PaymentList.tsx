@@ -297,7 +297,7 @@ const PaymentList = () => {
         <CardContent>
           <PaymentTable
             payments={filteredPayments}
-            onMarkAsPaid={handleMarkAsPaid}
+            //onMarkAsPaid={handleMarkAsPaid}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
