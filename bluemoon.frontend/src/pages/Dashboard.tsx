@@ -94,7 +94,7 @@ const Dashboard = () => {
       show: isLeader,
     },
     {
-      title: "Quản lý thu phí",
+      title: "Quản lý khoản phí",
       description: "Thiết lập và quản lý các khoản phí",
       icon: CreditCard,
       path: "/fees",
@@ -102,7 +102,7 @@ const Dashboard = () => {
       show: isAccountant,
     },
     {
-      title: "Thanh toán",
+      title: "Quản lý thu phí",
       description: "Theo dõi tình trạng thanh toán",
       icon: Wallet,
       path: "/payments",
