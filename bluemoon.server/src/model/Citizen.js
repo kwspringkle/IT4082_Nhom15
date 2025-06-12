@@ -27,10 +27,10 @@ const citizenSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  status : {
+  status: {
     type: String,
-    enum: ['Thường trú', 'Tạm vắng', 'Đã chuyển đi'],
-    default : 'Thường trú',
+    enum: ['Thường trú', 'Tạm vắng', 'Tạm trú', 'Đã chuyển đi'], // ← Add 'Tạm trú'
+    default: 'Thường trú',
   },
   householdId: {
     type: mongoose.Schema.Types.ObjectId,

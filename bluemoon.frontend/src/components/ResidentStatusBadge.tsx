@@ -20,3 +20,5 @@ const ResidentStatusBadge = ({ status }: ResidentStatusBadgeProps) => {
 };
 
 export default ResidentStatusBadge;
+
+

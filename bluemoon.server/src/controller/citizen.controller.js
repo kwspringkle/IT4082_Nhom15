@@ -8,7 +8,7 @@ export const getAllCitizens = async (req, res) => {
     const { householdId } = req.query;
 
     const matchConditions = {
-      status: { $in: ['Thường trú', 'Tạm vắng'] }
+      status: { $in: ['Thường trú', 'Tạm vắng', 'Tạm trú'] } // ← Add 'Tạm trú'
     };
 
     if (householdId) {
@@ -37,10 +37,11 @@ export const getAllCitizens = async (req, res) => {
             $switch: {
               branches: [
                 { case: { $eq: ['$status', 'Thường trú'] }, then: 1 },
-                { case: { $eq: ['$status', 'Tạm vắng'] }, then: 2 },
-                { case: { $eq: ['$status', 'Đã chuyển đi'] }, then: 3 },
+                { case: { $eq: ['$status', 'Tạm trú'] }, then: 2 }, // ← Add 'Tạm trú' with order 2
+                { case: { $eq: ['$status', 'Tạm vắng'] }, then: 3 }, // ← Adjust order for 'Tạm vắng'
+                { case: { $eq: ['$status', 'Đã chuyển đi'] }, then: 4 },
               ],
-              default: 4,
+              default: 5,
             },
           },
         },
@@ -99,7 +100,8 @@ export const createCitizen = async (req, res) => {
       dob,
       relation,
       householdId,
-      phone, // ← Lấy thêm phone từ body
+      phone,
+      status = 'Thường trú' 
     } = req.body;
 
     // Tạo nhân khẩu mới
@@ -110,7 +112,8 @@ export const createCitizen = async (req, res) => {
       dob,
       relation,
       householdId,
-      phone, // ← Thêm phone vào Citizen
+      phone,
+      status, 
     });
 
     const savedCitizen = await newCitizen.save();
@@ -124,7 +127,7 @@ export const createCitizen = async (req, res) => {
         householdId,
         {
           head: name,
-          phone: phone, // ← Cập nhật phone cho household
+          phone: phone,
           $inc: { members: 1 },
           updatedAt: Date.now(),
         },
@@ -162,19 +165,22 @@ export const createCitizen = async (req, res) => {
   }
 };
 
-
-
 // Cập nhật nhân khẩu
 export const updateCitizen = async (req, res) => {
   try {
-    const { name, citizenId, gender, dob, apartment, relation, status, householdId } = req.body;
+    const { name, citizenId, gender, dob, relation, status, householdId, phone } = req.body;
+
+    const previousCitizen = await Citizen.findById(req.params.id);
+    if (!previousCitizen) {
+      return res.status(404).json({ message: 'Không tìm thấy nhân khẩu' });
+    }
 
     const updatedCitizen = await Citizen.findByIdAndUpdate(
       req.params.id,
-      { name, citizenId, gender, dob, apartment, relation, status, householdId },
+      { name, citizenId, gender, dob, relation, status, householdId, phone },
       {
         new: true,
-        context: { userId: req.user?.id || 'unknown' }  // 👈 Truyền userId vào để log
+        context: { userId: req.user?.id || 'unknown' }
       }
     );
 
@@ -182,13 +188,23 @@ export const updateCitizen = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy nhân khẩu' });
     }
 
+    if (previousCitizen.status !== updatedCitizen.status) {
+      const increment = (updatedCitizen.status === 'Đã chuyển đi') ? -1 : (previousCitizen.status === 'Đã chuyển đi' ? 1 : 0);
+      if (increment !== 0) {
+        await Household.findByIdAndUpdate(
+          updatedCitizen.householdId,
+          { $inc: { members: increment }, updatedAt: Date.now() },
+          { new: true }
+        );
+      }
+    }
+
     res.json({ message: 'Cập nhật nhân khẩu thành công', data: updatedCitizen });
   } catch (error) {
+    console.error("❌ Lỗi khi cập nhật nhân khẩu:", error);
     res.status(500).json({ message: 'Lỗi máy chủ' });
   }
 };
-
-
 
 // Xóa nhân khẩu
 export const deleteCitizen = async (req, res) => {
@@ -199,7 +215,14 @@ export const deleteCitizen = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy nhân khẩu' });
     }
 
-    // 👇 Ghi log thủ công vào History
+    if (['Thường trú', 'Tạm trú'].includes(deletedCitizen.status)) {
+      await Household.findByIdAndUpdate(
+        deletedCitizen.householdId,
+        { $inc: { members: -1 }, updatedAt: Date.now() },
+        { new: true }
+      );
+    }
+
     await History.create({
       collectionName: 'Citizen',
       documentId: deletedCitizen._id,
@@ -210,7 +233,7 @@ export const deleteCitizen = async (req, res) => {
 
     res.json({ message: 'Xóa nhân khẩu thành công' });
   } catch (error) {
+    console.error("❌ Lỗi khi xóa nhân khẩu:", error);
     res.status(500).json({ message: 'Lỗi máy chủ' });
   }
 };
-
