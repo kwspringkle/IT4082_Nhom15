@@ -27,12 +27,12 @@ interface AddResidentDialogProps {
     dob: string;
     relation: string;
     householdId: string;
-    phone?: string; // <-- thêm dòng này
+    phone?: string;
+    status: "Thường trú" | "Tạm vắng" | "Tạm trú";
   }) => Promise<void>;
   households: Household[];
   children: React.ReactNode;
 }
-
 
 export const AddResidentDialog = ({
   onAddResident,
@@ -46,11 +46,11 @@ export const AddResidentDialog = ({
     citizenId: "",
     gender: "Nam" as "Nam" | "Nữ" | "Khác",
     dob: "",
-    phone: "", // <-- thêm dòng này
+    phone: "",
     relation: "",
     householdId: "",
+    status: "Thường trú" as "Thường trú" | "Tạm vắng" | "Tạm trú",
   });
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +61,8 @@ export const AddResidentDialog = ({
       !formData.gender ||
       !formData.dob ||
       !formData.relation ||
-      !formData.householdId
+      !formData.householdId ||
+      !formData.status
     ) {
       toast({
         title: "Lỗi",
@@ -127,7 +128,6 @@ export const AddResidentDialog = ({
       await onAddResident({
         ...formData,
         dob: dobDate.toISOString(),
-        phone: formData.phone,
       });
 
       setOpen(false);
@@ -136,9 +136,10 @@ export const AddResidentDialog = ({
         citizenId: "",
         gender: "Nam",
         dob: "",
-        phone : "",
+        phone: "",
         relation: "",
         householdId: "",
+        status: "Thường trú",
       });
 
       toast({
@@ -242,6 +243,25 @@ export const AddResidentDialog = ({
                 <SelectItem value="Cha / Mẹ">Cha / Mẹ</SelectItem>
                 <SelectItem value="Người thuê">Người thuê</SelectItem>
                 <SelectItem value="Khác">Khác</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Tình trạng cư trú</Label>
+            <Select
+              value={formData.status}
+              onValueChange={(value: "Thường trú" | "Tạm vắng" | "Tạm trú") =>
+                setFormData({ ...formData, status: value })
+              }
+              disabled={isLoading}
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Chọn tình trạng" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Thường trú">Thường trú</SelectItem>
+                <SelectItem value="Tạm trú">Tạm trú</SelectItem>
               </SelectContent>
             </Select>
           </div>

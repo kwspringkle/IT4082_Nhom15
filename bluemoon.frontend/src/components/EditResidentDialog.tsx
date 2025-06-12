@@ -26,9 +26,10 @@ interface EditResidentDialogProps {
     citizenId: string;
     gender: "Nam" | "Nữ" | "Khác";
     dob: string;
+    phone?: string;
     relation: string;
     householdId: string;
-    status: "Thường trú" | "Tạm vắng";
+    status: "Thường trú" | "Tạm vắng" | "Tạm trú";
   }) => Promise<void>;
   households: Household[];
   children: React.ReactNode;
@@ -47,9 +48,10 @@ export const EditResidentDialog = ({
     citizenId: resident?.citizenId ?? "",
     gender: resident?.gender ?? "Nam" as "Nam" | "Nữ" | "Khác",
     dob: resident?.dob ? new Date(resident.dob).toISOString().split("T")[0] : "",
+    phone: resident?.phone ?? "",
     relation: resident?.relation ?? "",
     householdId: resident?.householdId ?? "",
-    status: resident?.status ?? "Thường trú" as "Thường trú" | "Tạm vắng",
+    status: resident?.status ?? "Thường trú" as "Thường trú" | "Tạm vắng" | "Tạm trú",
   });
 
   useEffect(() => {
@@ -59,6 +61,7 @@ export const EditResidentDialog = ({
         citizenId: resident.citizenId ?? "",
         gender: resident.gender ?? "Nam",
         dob: resident.dob ? new Date(resident.dob).toISOString().split("T")[0] : "",
+        phone: resident.phone ?? "",
         relation: resident.relation ?? "",
         householdId: resident.householdId ?? "",
         status: resident.status ?? "Thường trú",
@@ -182,22 +185,47 @@ export const EditResidentDialog = ({
             />
           </div>
           <div>
-            <Label>Quan hệ với chủ hộ</Label>
+            <Label>Số điện thoại</Label>
             <Input
-              value={formData.relation}
-              onChange={(e) => setFormData({ ...formData, relation: e.target.value })}
-              required
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               disabled={isLoading}
+              placeholder="VD: 0912345678"
             />
+          </div>
+          <div>
+            <Label>Quan hệ với chủ hộ</Label>
+            <Select
+              value={formData.relation}
+              onValueChange={(value: string) => setFormData({ ...formData, relation: value })}
+              disabled={isLoading}
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Chọn quan hệ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Chủ hộ">Chủ hộ</SelectItem>
+                <SelectItem value="Vợ / Chồng">Vợ / Chồng</SelectItem>
+                <SelectItem value="Con">Con</SelectItem>
+                <SelectItem value="Cháu">Cháu</SelectItem>
+                <SelectItem value="Anh / Chị / Em">Anh / Chị / Em</SelectItem>
+                <SelectItem value="Cha / Mẹ">Cha / Mẹ</SelectItem>
+                <SelectItem value="Người thuê">Người thuê</SelectItem>
+                <SelectItem value="Khác">Khác</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Tình trạng cư trú</Label>
             <Select
               value={formData.status}
-              onValueChange={(value: "Thường trú" | "Tạm vắng") =>
+              onValueChange={(value: "Thường trú" | "Tạm vắng" | "Tạm trú") =>
                 setFormData({ ...formData, status: value })
               }
               disabled={isLoading}
+              required
             >
               <SelectTrigger>
                 <SelectValue placeholder="Chọn tình trạng" />
@@ -205,6 +233,7 @@ export const EditResidentDialog = ({
               <SelectContent>
                 <SelectItem value="Thường trú">Thường trú</SelectItem>
                 <SelectItem value="Tạm vắng">Tạm vắng</SelectItem>
+                <SelectItem value="Tạm trú">Tạm trú</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -214,6 +243,7 @@ export const EditResidentDialog = ({
               value={formData.householdId}
               onValueChange={(value) => setFormData({ ...formData, householdId: value })}
               disabled={isLoading || !households.length}
+              required
             >
               <SelectTrigger>
                 <SelectValue placeholder="Chọn căn hộ" />
