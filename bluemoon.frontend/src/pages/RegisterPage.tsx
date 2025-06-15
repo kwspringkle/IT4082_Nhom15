@@ -192,7 +192,7 @@ const RegisterPage = () => {
                     checked={role === "Tổ trưởng"}
                     onChange={(e) => setRole(e.target.value)}
                   />
-                  Tổ trưởng
+                  Quản trị viên
                 </label>
                 <label className="flex items-center gap-2">
                   <input
