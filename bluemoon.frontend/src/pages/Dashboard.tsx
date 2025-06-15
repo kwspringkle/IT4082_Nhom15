@@ -41,7 +41,7 @@ const Dashboard = () => {
     fetchStats();
   }, []);
 
-  const isLeader = role === "Tổ trưởng" || role === "Tổ phó";
+  const isLeader = role === "Quản trị viên" || role === "Tổ phó" || role == "Tổ trưởng";
   const isAccountant = role === "Kế toán";
 
   const statCards = [

@@ -55,7 +55,7 @@ const UserManagement = () => {
     fullname: '',
     email: '',
     phone: '',
-    role: 'Nhân viên',
+    role: 'Kế toán',
     password: '',
     confirmPassword: '',
   });
@@ -65,7 +65,7 @@ const UserManagement = () => {
     fullname: '',
     email: '',
     phone: '',
-    role: 'Nhân viên',
+    role: 'Kế toán',
   });
 
   // Lấy danh sách người dùng từ API
@@ -147,7 +147,7 @@ const UserManagement = () => {
         fullname: '',
         email: '',
         phone: '',
-        role: 'Nhân viên',
+        role: 'Kế toán',
         password: '',
         confirmPassword: '',
       });
@@ -265,7 +265,7 @@ const UserManagement = () => {
       case 'inactive':
         return <Badge className="bg-gray-100 text-gray-800">Vô hiệu</Badge>;
       case 'pending':
-        return <Badge className="bg-amber-100 text-amber-800">Chờ duyệt</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800">Chờ duyệt</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -273,10 +273,10 @@ const UserManagement = () => {
 
   const getRoleBadge = (user) => {
     switch (user.role) {
-      case 'Quản trị viên':
+      case 'Tổ trưởng':
         return <Badge className="bg-blue-100 text-blue-800">Quản trị viên</Badge>;
-      case 'Nhân viên':
-        return <Badge className="bg-purple-100 text-purple-800">Nhân viên</Badge>;
+      case 'Kế toán':
+        return <Badge className="bg-purple-100 text-purple-800">Kế toán</Badge>;
       default:
         return <Badge>{user.role}</Badge>;
     }
@@ -354,8 +354,8 @@ const UserManagement = () => {
                       <SelectValue placeholder="Chọn vai trò" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Quản trị viên">Quản trị viên</SelectItem>
-                      <SelectItem value="Nhân viên">Nhân viên</SelectItem>
+                      <SelectItem value="Tổ trưởng">Quản trị viên</SelectItem>
+                      <SelectItem value="Kế toán">Kế toán</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -536,8 +536,8 @@ const UserManagement = () => {
                     <SelectValue placeholder="Chọn vai trò" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Quản trị viên">Quản trị viên</SelectItem>
-                    <SelectItem value="Nhân viên">Nhân viên</SelectItem>
+                    <SelectItem value="Tổ trưởng">Quản trị viên</SelectItem>
+                    <SelectItem value="Kế toán">Kế toán</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
